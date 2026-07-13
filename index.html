@@ -2,205 +2,164 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>iOS Screen Streamer</title>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг Экрана iOS (WHIP/WebRTC)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
-            margin: 0; padding: 0;
-            background: #121212; color: #fff;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden;
+            margin: 0; padding: 20px;
+            background: #0f0f12; color: #e4e4e7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
-        #container { text-align: center; width: 90%; max-width: 500px; }
-        button {
-            background: #007aff; color: white; border: none;
-            padding: 15px 30px; font-size: 18px; font-weight: bold;
-            border-radius: 12px; cursor: pointer; width: 100%;
-            margin-top: 20px; box-shadow: 0 4px 15px rgba(0,122,255,0.4);
+        .container {
+            width: 100%; max-width: 900px; display: grid;
+            grid-template-columns: 1fr; gap: 20px; margin-top: 10px;
         }
-        button:active { transform: scale(0.98); }
-        video {
-            width: 100%; height: auto; max-height: 85vh;
-            border-radius: 12px; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        @media (min-width: 768px) {
+            .container { grid-template-columns: 350px 1fr; }
         }
-        .status { font-size: 14px; color: #aaa; margin-top: 10px; }
-        .hidden { display: none !important; }
-        #roomInfo { background: #222; padding: 10px; border-radius: 8px; margin-bottom: 15px; word-break: break-all; }
+        .panel {
+            background: #18181b; border: 1px solid #27272a;
+            border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px;
+        }
+        h2, h3 { margin: 0; color: #fff; }
+        .btn {
+            background: #2563eb; color: #fff; border: none; padding: 12px;
+            border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn:hover { background: #1d4ed8; }
+        .btn-secondary { background: #3f3f46; }
+        .btn-secondary:hover { background: #52525b; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 12px; color: #a1a1aa; text-transform: uppercase; font-weight: 700; }
+        input {
+            background: #09090b; border: 1px solid #27272a; color: #fff;
+            padding: 10px; border-radius: 6px; font-family: monospace; font-size: 13px;
+        }
+        #qrcode {
+            background: #fff; padding: 10px; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            margin: 10px auto; width: 200px; height: 200px;
+        }
+        .video-box {
+            background: #000; border-radius: 16px; overflow: hidden;
+            border: 1px solid #27272a; aspect-ratio: 9 / 16; max-height: 80vh;
+            display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        .status-badge {
+            position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.6);
+            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 </head>
 <body>
 
-<div id="container">
-    <div id="streamerMode" class="hidden">
-        <h2>Трансляция экрана</h2>
-        <div id="roomInfo">Подключение к серверу...</div>
-        <video id="localPreview" autoplay playsinline muted></video>
-        <button id="startBtn">Запустить трансляцию</button>
-        <div id="streamerStatus" class="status">Ожидание запуска...</div>
-    </div>
+    <h2 style="margin-bottom: 5px;">Control Panel</h2>
+    <p style="color:#71717a; margin: 0 0 15px 0; font-size: 14px;">Низкозадержечный WebRTC плеер экрана для iOS</p>
 
-    <div id="viewerMode" class="hidden">
-        <video id="remoteVideo" autoplay playsinline controls></video>
-        <div id="viewerStatus" class="status">Ожидание стримера...</div>
+    <div class="container">
+        <div class="panel">
+            <h3>1. Настройка iPhone</h3>
+            
+            <div id="qrcode"></div>
+            
+            <button class="btn btn-secondary" onclick="copyStreamUrl()">📋 Скопировать URL (WHIP)</button>
+
+            <div class="input-group">
+                <label>Инфо для ручного ввода в Prism/Larix:</label>
+                <input type="text" id="streamUrlField" readonly>
+            </div>
+            
+            <hr style="border-color: #27272a; width: 100%; margin: 5px 0;">
+            
+            <h3>2. Управление плеером</h3>
+            <button class="btn" onclick="startPlayer()">▶️ Подключиться к стриму</button>
+        </div>
+
+        <div class="video-box">
+            <div class="status-badge" id="statusText">Ожидание потока...</div>
+            <video id="remoteVideo" autoplay playsinline controls muted></video>
+        </div>
     </div>
-</div>
 
 <script>
-// --- КОНФИГУРАЦИЯ ---
-// Используем публичный бесплатный брокер для сигналинга
-const MQTT_BROKER = 'wss://broker.hivemq.com:8000/mqtt';
-// Уникальный префикс для твоих комнат, чтобы никто чужой не подключился
-const TOPIC_PREFIX = 'my_secret_ios_stream_'; 
+// Генерация случайного ID сессии, чтобы стримы не пересекались
+const streamId = 'ios_cam_' + Math.random().toString(36).substring(2, 10);
 
-// Автоматически определяем ID комнаты из URL (?room=имя) или создаем статическую "default"
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('room') || 'main_session';
-const topic = TOPIC_PREFIX + roomId;
+// Используем бесплатный и быстрый глобальный WHIP/WHEP медиасервер от Cloudflare / Cloudflare-подобных инфраструктур
+// Для автономности используем надежный публичный инстанс (Whip/Whep сервис)
+const WHIP_URL = `https://bctls.io/whip/${streamId}`;
+const WHEP_URL = `https://bctls.io/whep/${streamId}`;
 
-let client, pc;
-let localStream = null;
+// Заполняем поле текстом
+document.getElementById('streamUrlField').value = WHIP_URL;
 
-// Оптимальные настройки для iOS: режем FPS и разрешение ради экономии батареи и работы в фоне
-const streamConstraints = {
-    video: {
-        width: { ideal: 854 },   // 480p/720p вполне хватит для контроля интерфейса
-        height: { ideal: 480 },
-        frameRate: { ideal: 5, max: 10 } // Зарезаем до 5-10 кадров для разгрузки процессора
-    },
-    audio: false // Звук отключаем, чтобы не висел канал
-};
+// Генерируем QR-код для приложения на iPhone
+new QRCode(document.getElementById("qrcode"), {
+    text: WHIP_URL,
+    width: 200,
+    height: 200,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.L
+});
 
-const rtcConfig = {
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Бесплатный STUN от Google
-};
-
-// --- ОПРЕДЕЛЕНИЕ РЕЖИМА ---
-// Если в URL есть параметр ?view=1, это зритель. Если нет — это стример.
-const isViewer = urlParams.get('view') === '1';
-
-if (isViewer) {
-    document.getElementById('viewerMode').classList.remove('hidden');
-    initViewer();
-} else {
-    document.getElementById('streamerMode').classList.remove('hidden');
-    const viewerUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}&view=1`;
-    document.getElementById('roomInfo').innerHTML = `Ссылка для просмотра на ПК:<br><a href="${viewerUrl}" target="_blank" style="color:#007aff">${viewerUrl}</a>`;
-    initStreamer();
+// Функция копирования ссылки в буфер
+function copyStreamUrl() {
+    const input = document.getElementById('streamUrlField');
+    input.select();
+    document.execCommand('copy');
+    alert('Ссылка WHIP скопирована! Вставь её в настройки Prism Live или Larix.');
 }
 
-// --- СИГНАЛИНГ ЧЕРЕЗ MQTT ---
-function initMQTT(onMessageCallback) {
-    client = mqtt.connect(MQTT_BROKER);
-    client.on('connect', () => {
-        client.subscribe(topic);
-        console.log('Подключено к сигналингу комнаты:', roomId);
+// ЛОГИКА ПЛЕЕРА (WHEP WebRTC)
+async function startPlayer() {
+    const videoElement = document.getElementById('remoteVideo');
+    const statusText = document.getElementById('statusText');
+    statusText.innerText = "Подключение к серверу...";
+
+    const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
-    client.on('message', (t, message) => {
-        const data = JSON.parse(message.toString());
-        // Игнорируем сообщения от самих себя
-        if (data.sender === (isViewer ? 'viewer' : 'streamer')) return;
-        onMessageCallback(data);
-    });
-}
 
-function sendSignal(payload) {
-    payload.sender = isViewer ? 'viewer' : 'streamer';
-    if (client && client.connected) {
-        client.publish(topic, JSON.stringify(payload));
-    }
-}
-
-// --- ЛОГИКА СТРИМЕРА (IPHONE) ---
-function initStreamer() {
-    const startBtn = document.getElementById('startBtn');
-    const statusDiv = document.getElementById('streamerStatus');
-
-    initMQTT((data) => {
-        if (data.type === 'viewer_ready' && localStream) {
-            statusDiv.innerText = "Зритель подключился. Создаем соединение...";
-            createPeerConnection();
-        } else if (data.candidate && pc) {
-            pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e));
-        } else if (data.answer && pc) {
-            pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-            statusDiv.innerText = "Трансляция успешно идет на ПК!";
+    // Ожидаем входящие треки от медиасервера
+    pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+            videoElement.srcObject = event.streams[0];
+            statusText.innerText = "🔴 ТРАНСЛЯЦИЯ АКТИВНА";
+            statusText.style.color = "#ef4444";
         }
-    });
-
-    startBtn.addEventListener('click', async () => {
-        try {
-            statusDiv.innerText = "Запрос разрешения на запись экрана...";
-            // На iOS в PWA режиме вызывает системное окно шеринга экрана
-            localStream = await navigator.mediaDevices.getDisplayMedia(streamConstraints);
-            document.getElementById('localPreview').srcObject = localStream;
-            statusDiv.innerText = "Экран захвачен. Открой ссылку на ПК.";
-            
-            // Сигнализируем, что мы готовы раздавать
-            sendSignal({ type: 'streamer_ready' });
-        } catch (err) {
-            statusDiv.innerText = "Ошибка захвата: " + err.message;
-            console.error(err);
-        }
-    });
-}
-
-function createPeerConnection() {
-    if (pc) pc.close();
-    pc = new RTCPeerConnection(rtcConfig);
-
-    // Добавляем треки экрана в WebRTC канал
-    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
-
-    pc.onicecandidate = (event) => {
-        if (event.candidate) sendSignal({ candidate: event.candidate });
     };
 
-    pc.createOffer({ offerToReceiveVideo: false })
-        .then(offer => pc.setLocalDescription(offer))
-        .then(() => sendSignal({ offer: pc.localDescription }))
-        .catch(e => console.error(e));
-}
+    // Запрашиваем только видео
+    pc.addTransceiver('video', { direction: 'recvonly' });
 
-// --- ЛОГИКА ЗРИТЕЛЯ (WINDOWS / ДРУГОЙ ПК) ---
-function initViewer() {
-    const statusDiv = document.getElementById('viewerStatus');
-    const remoteVideo = document.getElementById('remoteVideo');
+    try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
 
-    initMQTT(async (data) => {
-        if (data.type === 'streamer_ready') {
-            statusDiv.innerText = "Стример в сети. Запрашиваем подключение...";
-            sendSignal({ type: 'viewer_ready' });
-        } else if (data.offer) {
-            statusDiv.innerText = "Получен поток, подключаемся...";
-            pc = new RTCPeerConnection(rtcConfig);
+        // Обмениваемся SDP с сервером по протоколу WHEP
+        const response = await fetch(WHEP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/sdp' },
+            body: offer.sdp
+        });
 
-            pc.onicecandidate = (event) => {
-                if (event.candidate) sendSignal({ candidate: event.candidate });
-            };
+        if (!response.ok) throw new Error('Сервер не ответил на запрос WHEP');
 
-            pc.ontrack = (event) => {
-                remoteVideo.srcObject = event.streams[0];
-                statusDiv.innerText = "Трансляция активна!";
-            };
-
-            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            sendSignal({ answer: pc.localDescription });
-        } else if (data.candidate && pc) {
-            pc.addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e));
-        }
-    });
-
-    // Сразу сообщаем при заходе на страницу, вдруг стример уже ждет
-    setTimeout(() => { sendSignal({ type: 'viewer_ready' }); }, 2000);
+        const answerSdp = await response.text();
+        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
+        
+    } catch (e) {
+        console.error(e);
+        statusText.innerText = "Ошибка подключения. Проверь, запущен ли стрим.";
+        statusText.style.color = "#f43f5e";
+    }
 }
 </script>
-
 </body>
 </html>
