@@ -2,153 +2,36 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мониторинг Экрана iOS (Larix SRT)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rocket Tennis 2D 1st Person</title>
     <style>
-        body {
-            margin: 0; padding: 20px;
-            background: #0b0b0e; color: #e4e4e7;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
-        }
-        .container {
-            width: 100%; max-width: 950px; display: grid;
-            grid-template-columns: 1fr; gap: 20px; margin-top: 10px;
-        }
-        @media (min-width: 768px) {
-            .container { grid-template-columns: 400px 1fr; }
-        }
-        .panel {
-            background: #121216; border: 1px solid #222227;
-            border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 15px;
-        }
-        h2, h3 { margin: 0; color: #fff; }
-        .btn {
-            background: #2563eb; color: #fff; border: none; padding: 12px;
-            border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;
-            text-align: center; font-size: 14px;
-        }
-        .btn:hover { background: #1d4ed8; }
-        .btn-secondary { background: #27272a; color: #e4e4e7; font-size: 12px; padding: 6px 10px; border-radius: 6px; }
-        .btn-secondary:hover { background: #3f3f46; }
-        .input-group { display: flex; flex-direction: column; gap: 5px; }
-        label { font-size: 11px; color: #a1a1aa; text-transform: uppercase; font-weight: 700; }
-        .input-row { display: flex; gap: 5px; }
-        input {
-            background: #09090b; border: 1px solid #27272a; color: #fff;
-            padding: 8px; border-radius: 6px; font-family: monospace; font-size: 12px; flex-grow: 1;
-        }
-        .video-box {
-            background: #000; border-radius: 16px; overflow: hidden;
-            border: 1px solid #222227; aspect-ratio: 9 / 16; max-height: 80vh;
-            display: flex; align-items: center; justify-content: center; position: relative;
-        }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        .status-badge {
-            position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.7);
-            padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-            backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); z-index: 10;
-        }
-        .step-desc { font-size: 13px; color: #a1a1aa; margin: 0; }
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { background: #111; color: #fff; font-family: sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
+        #menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
+        button { background: #007aff; border: none; color: white; padding: 15px 32px; font-size: 16px; margin: 10px 0; cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; }
+        #gameCanvas { display: block; width: 100vw; height: 100vh; background: #1a3c1a; }
+        #status { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 18px; z-index: 5; font-weight: bold; text-shadow: 1px 1px 2px #000; }
     </style>
+    <!-- Подключаем PeerJS для мультиплеера -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-    <h2>Larix SRT Монитор</h2>
-    <p style="color:#71717a; margin: 0 0 15px 0; font-size: 14px;">Ручной ввод настроек для 100% стабильности</p>
+    <div id="status">Ожидание создания игры...</div>
 
-    <div class="container">
-        <div class="panel">
-            <h3>1. Настройка Connections в Larix</h3>
-            <p class="step-desc">В Larix зайди в Настройки -> Connections -> New connection и вставь данные:</p>
-            
-            <div class="input-group">
-                <label>Name (Имя подключения)</label>
-                <input type="text" value="GitHub Stream" readonly>
-            </div>
-
-            <div class="input-group">
-                <label>URL (Адрес сервера)</label>
-                <div class="input-row">
-                    <input type="text" id="srtUrl" value="srt://vdo.ninja:8889" readonly>
-                    <button class="btn-secondary" onclick="copyText('srtUrl')">📋</button>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>StreamID (Идентификатор)</label>
-                <div class="input-row">
-                    <input type="text" id="srtId" readonly>
-                    <button class="btn-secondary" onclick="copyText('srtId')">📋</button>
-                </div>
-            </div>
-            
-            <hr style="border-color: #222227; width: 100%; margin: 5px 0;">
-            
-            <h3>2. Просмотр</h3>
-            <button class="btn" onclick="startPlayer()">▶️ Подключиться к экрану</button>
-        </div>
-
-        <div class="video-box">
-            <div class="status-badge" id="statusText">Ожидание SRT потока...</div>
-            <video id="remoteVideo" autoplay playsinline controls muted></video>
-        </div>
+    <div id="menu">
+        <h2>Rocket Tennis</h2>
+        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Стиль Rocket League от 1-го лица</p>
+        <button id="btnCreate">Создать комнату (Игрок 1)</button>
+        <hr style="border-color: #333; margin: 10px 0;">
+        <input type="text" id="peerIdInput" placeholder="Вставь ID создателя сюда">
+        <button id="btnJoin" style="background: #34c759;">Подключиться (Игрок 2)</button>
     </div>
 
-<script>
-// Генерируем уникальный ID для трансляции
-const uniqueId = 'srt_' + Math.random().toString(36).substring(2, 10);
-// По стандарту vdo.ninja для SRT публикация должна начинаться с publish/
-document.getElementById('srtId').value = `publish/${uniqueId}`;
+    <canvas id="gameCanvas"></canvas>
 
-function copyText(id) {
-    const input = document.getElementById(id);
-    input.select();
-    document.execCommand('copy');
-}
-
-// Подключение к плееру (забираем поток по WebRTC WHEP)
-async function startPlayer() {
-    const videoElement = document.getElementById('remoteVideo');
-    const statusText = document.getElementById('statusText');
-    statusText.innerText = "Подключение к SRT шлюзу...";
-
-    const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-
-    pc.ontrack = (event) => {
-        if (event.streams && event.streams[0]) {
-            videoElement.srcObject = event.streams[0];
-            statusText.innerText = "🔴 СТРИМ АКТИВЕН (SRT)";
-            statusText.style.color = "#22c55e";
-        }
-    };
-
-    pc.addTransceiver('video', { direction: 'recvonly' });
-
-    try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        // Запрашиваем поток у шлюза (для воспроизведения префикс playback/)
-        const response = await fetch(`https://vdo.ninja:8443/whep?streamid=playback/${uniqueId}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/sdp' },
-            body: offer.sdp
-        });
-
-        if (!response.ok) throw new Error('Поток еще не дошел до сервера');
-
-        const answerSdp = await response.text();
-        await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: answerSdp }));
-        
-    } catch (e) {
-        console.error(e);
-        statusText.innerText = "Сигнал отсутствует. Убедись, что трансляция экрана в Larix уже запущена.";
-        statusText.style.color = "#f43f5e";
-    }
-}
-</script>
+    <script src="multiplayer.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
