@@ -3,30 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Rocket Tennis 2D 1st Person</title>
+    <title>Rocket Tennis Multiplayer</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body { background: #111; color: #fff; font-family: sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
-        #menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
-        button { background: #007aff; border: none; color: white; padding: 15px 32px; font-size: 16px; margin: 10px 0; cursor: pointer; border-radius: 8px; width: 100%; font-weight: bold; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; text-align: center; }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; background: #1a3c1a; }
-        #status { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); font-size: 18px; z-index: 5; font-weight: bold; text-shadow: 1px 1px 2px #000; }
+        body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; overflow: hidden; position: fixed; width: 100%; height: 100%; }
+        #menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; background: rgba(0,0,0,0.85); padding: 25px; border-radius: 16px; width: 90%; max-width: 360px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h2 { margin-bottom: 5px; font-weight: 800; letter-spacing: -0.5px; }
+        button { background: #007aff; border: none; color: white; padding: 16px; font-size: 16px; margin: 10px 0; cursor: pointer; border-radius: 12px; width: 100%; font-weight: bold; transition: background 0.2s; -webkit-tap-highlight-color: transparent; }
+        button:active { background: #0056b3; }
+        #btnShare { background: #34c759; display: none; }
+        #btnShare:active { background: #248a3d; }
+        #gameCanvas { display: block; width: 100vw; height: 100vh; background: #142214; }
+        #status { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 16px; z-index: 5; font-weight: 600; text-align: center; width: 80%; background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; backdrop-filter: blur(5px); pointer-events: none; }
     </style>
-    <!-- Подключаем PeerJS для мультиплеера -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-    <div id="status">Ожидание создания игры...</div>
+    <div id="status">Проверка ссылки подключения...</div>
 
     <div id="menu">
         <h2>Rocket Tennis</h2>
-        <p style="font-size: 12px; color: #aaa; margin-bottom: 10px;">Стиль Rocket League от 1-го лица</p>
-        <button id="btnCreate">Создать комнату (Игрок 1)</button>
-        <hr style="border-color: #333; margin: 10px 0;">
-        <input type="text" id="peerIdInput" placeholder="Вставь ID создателя сюда">
-        <button id="btnJoin" style="background: #34c759;">Подключиться (Игрок 2)</button>
+        <p style="font-size: 13px; color: #aaa; margin-bottom: 20px;">Псевдо-3D мультиплеер</p>
+        
+        <button id="btnCreate">Создать матч (Игрок 1)</button>
+        <button id="btnShare">Поделиться ссылкой с другом</button>
+        
+        <div id="joinSection" style="display: none;">
+            <p style="font-size: 14px; margin-bottom: 10px; color: #34c759; font-weight: bold;">Вас пригласили в игру!</p>
+            <button id="btnJoin" style="background: #34c759; margin: 0;">Вступить в бой</button>
+        </div>
     </div>
 
     <canvas id="gameCanvas"></canvas>
