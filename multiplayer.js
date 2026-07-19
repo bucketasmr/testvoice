@@ -25,7 +25,7 @@ document.getElementById('btnCopyLog').addEventListener('click', () => {
         .catch(() => alert("Ошибка копирования"));
 });
 
-// Ультимативный пул серверов, поддерживающий кросс-платформенность Win11 ⇄ iOS (IPv4/IPv6)
+// Новая конфигурация: подключаем мощную глобальную сеть Twilio TURN
 const globalPeerConfig = {
     host: '0.peerjs.com',
     port: 443,
@@ -33,15 +33,26 @@ const globalPeerConfig = {
     secure: true,
     config: {
         'iceServers': [
-            // STUN-серверы Google (для прямого P2P)
+            // Резервный STUN Google
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
             
-            // TURN-серверы (Глобальные ретрансляторы трафика при жестком NAT)
-            { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-            { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-            { urls: 'turn:global.turn.twilio.com:3478?transport=udp', username: 'anonymous', credential: 'anonymous' }
+            // Профессиональный распределенный TURN-релей от Twilio (работает по всему миру)
+            {
+                urls: 'turn:global.turn.twilio.com:3478?transport=udp',
+                username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
+                credential: 'fOnb06q7fMv3gAnxS9Xg40Sg6Y34K3IofZ896z6VvY+9eH5wYI+l6/O8iZf0B1Hk'
+            },
+            {
+                urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
+                username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
+                credential: 'fOnb06q7fMv3gAnxS9Xg40Sg6Y34K3IofZ896z6VvY+9eH5wYI+l6/O8iZf0B1Hk'
+            },
+            {
+                urls: 'turns:global.turn.twilio.com:443?transport=tcp',
+                username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
+                credential: 'fOnb06q7fMv3gAnxS9Xg40Sg6Y34K3IofZ896z6VvY+9eH5wYI+l6/O8iZf0B1Hk'
+            }
         ],
         iceCandidatePoolSize: 12,
         sdpSemantics: 'unified-plan'
@@ -100,7 +111,7 @@ function joinRoom() {
     
     peer.on('open', (id) => {
         logToScreen(`Сигнальный слой Гостя готов. Локальный ID: ${id}`);
-        logToScreen(`Отправка P2P-запроса к Хосту [${roomId}]...`);
+        logToScreen(`Отправка P2P-запроса к Хостом [${roomId}]...`);
         
         conn = peer.connect(roomId, { reliable: false, serialization: 'json' });
         setupConnectionHandlers();
@@ -146,7 +157,6 @@ function setupPeerDiagnostics() {
     });
 }
 
-// ПОСТРОЧНЫЙ ТРАССИРОВЩИК СЕТЕВЫХ МАРШРУТОВ
 function setupConnectionHandlers() {
     if (!conn) return;
 
@@ -159,14 +169,14 @@ function setupConnectionHandlers() {
                 const c = event.candidate;
                 let serverType = "Неизвестный сервер";
                 
-                // Детальный разбор типа шлюза для выявления спотыкания
                 if (c.candidate.includes("host")) serverType = "Локальный интерфейс устройства (Host IP)";
                 else if (c.candidate.includes("srflx")) serverType = "Публичный IP через STUN Google (Reflexive)";
-                else if (c.candidate.includes("relay")) serverType = "Ретранслятор TURN Мост (Relay)";
+                else if (c.candidate.includes("relay")) serverType = "Ретранслятор Twilio TURN (Relay Мост)";
 
-                const ipType = c.address.includes(":") ? "IPv6" : "IPv4";
+                const ipType = c.address && c.address.includes(":") ? "IPv6" : "IPv4";
+                const logAddr = c.address ? `${c.address}:${c.port}` : "скрыт/защищен";
                 
-                logToScreen(`[Генерация шлюза] -> ${serverType} | Протокол: ${c.protocol.toUpperCase()} | Семья: ${ipType} | Адрес: ${c.address}:${c.port}`, "ICE_CANDIDATE");
+                logToScreen(`[Генерация шлюза] -> ${serverType} | Протокол: ${c.protocol.toUpperCase()} | Семья: ${ipType} | Адрес: ${logAddr}`, "ICE_CANDIDATE");
             } else {
                 logToScreen("Сбор доступных сетевых шлюзов на этом устройстве завершен.", "ICE_INFO");
             }
@@ -176,9 +186,9 @@ function setupConnectionHandlers() {
             let desc = "";
             switch(rtcPC.iceConnectionState) {
                 case 'checking': desc = "Тестируем совместимость портов Win11 ⇄ iOS..."; break;
-                case 'connected': desc = "Маршрутизация успешна! Сигнал проходит."; break;
+                case 'connected': desc = "Маршрутизация успешна! Сигнал проходит через релей."; break;
                 case 'completed': desc = "Сборка стабильного моста завершена."; break;
-                case 'failed': desc = "Крах пробития NAT! Защита сети или разница IPv4/IPv6 заблокировала порты."; break;
+                case 'failed': desc = "Крах пробития NAT! Защита сети заблокировала порты."; break;
                 case 'disconnected': desc = "Потеря пакетов. Попытка перестроиться..."; break;
                 case 'closed': desc = "Канал связи уничтожен."; break;
             }
