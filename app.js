@@ -109,8 +109,6 @@ const usernameInput = document.getElementById('usernameInput');
 const saveNameBtn = document.getElementById('saveNameBtn');
 const overlay = document.getElementById('audioActivationOverlay');
 const audioActivateBtn = document.getElementById('audioActivateBtn');
-
-// ИНТЕГРАЦИЯ: Кнопка старта игры из HTML
 const startGameBtn = document.getElementById('startGameBtn');
 
 function log(message, type = "info") {
@@ -152,7 +150,6 @@ window.addEventListener('DOMContentLoaded', () => {
     log("System ready.");
     applyTranslations();
     
-    // Запрос никнейма перед стартом
     if (nameSetupOverlay) {
         nameSetupOverlay.style.display = 'flex';
     }
@@ -194,6 +191,46 @@ joinBtn.addEventListener('click', async () => {
     initPeer(true); 
 });
 
+// Хелпер для принудительной установки кодека H.264 в SDP (Критично для iOS 15.6)
+function forceH264Codec(sdp) {
+    let lines = sdp.split('\r\n');
+    let videoSectionIdx = lines.findIndex(line => line.startsWith('m=video'));
+    if (videoSectionIdx === -1) return sdp;
+
+    let h264Payloads = [];
+    let rtpmapLines = {};
+
+    for (let i = videoSectionIdx + 1; i < lines.length; i++) {
+        if (lines[i].startsWith('m=')) break;
+        if (lines[i].startsWith('a=rtpmap:')) {
+            let match = lines[i].match(/a=rtpmap:(\d+)\s+([a-zA-Z0-9-]+)\//);
+            if (match) {
+                let payload = match[1];
+                let codec = match[2].toUpperCase();
+                rtpmapLines[payload] = lines[i];
+                if (codec === 'H264') {
+                    h264Payloads.push(payload);
+                }
+            }
+        }
+    }
+
+    if (h264Payloads.length > 0) {
+        let mLine = lines[videoSectionIdx];
+        let mLineParts = mLine.split(' ');
+        let protoIdx = 3; 
+        let headerParts = mLineParts.slice(0, protoIdx);
+        let oldPayloads = mLineParts.slice(protoIdx);
+        
+        let filteredPayloads = oldPayloads.filter(p => !h264Payloads.includes(p));
+        let newPayloads = h264Payloads.concat(filteredPayloads);
+        
+        lines[videoSectionIdx] = headerParts.join(' ') + ' ' + newPayloads.join(' ');
+    }
+
+    return lines.join('\r\n');
+}
+
 function initPeer(tryAsHost = true) {
     const targetID = tryAsHost ? ROOM_ID : MY_GUEST_ID;
     
@@ -208,12 +245,11 @@ function initPeer(tryAsHost = true) {
         debug: 1,
         config: {
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302', url: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302', url: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302', url: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302', url: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302', url: 'stun:stun4.l.google.com:19302' }
-            ]
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+            ],
+            sdpSemantics: 'unified-plan'
         }
     });
 
@@ -221,24 +257,22 @@ function initPeer(tryAsHost = true) {
         isReconnecting = false;
         if (tryAsHost) {
             isHostMode = true;
-            isHost = true; // Синхронизируем роль для физики в game.js
+            isHost = true; 
             log(`Узел зарегистрирован как Хост в комнате: ${id}`, "ok");
             statusText.innerText = translations[currentLang].statusHostWait;
             if (hostResetBtn) hostResetBtn.style.display = 'inline-block';
-            if (startGameBtn) startGameBtn.style.display = 'inline-block'; // Хост может запустить игру
+            if (startGameBtn) startGameBtn.style.display = 'inline-block'; 
         } else {
             isHostMode = false;
-            isHost = false; // Мы гость
+            isHost = false; 
             log(`Генерация гостевой ссылки. Локальный Peer ID: ${id}`, "ok");
             statusText.innerText = translations[currentLang].statusGuestConnect;
             if (hostResetBtn) hostResetBtn.style.display = 'none';
-            if (startGameBtn) startGameBtn.style.display = 'none'; // Гость ждет хоста
+            if (startGameBtn) startGameBtn.style.display = 'none'; 
             
-            // Клиент звонит на Хост
             connectToPeer(ROOM_ID);
         }
         
-        // Показываем чат и холст после подключения
         if (chatContainer) chatContainer.style.display = 'flex';
         if (paintContainer) paintContainer.style.display = 'block';
         document.querySelector('.controls').style.display = 'flex';
@@ -248,21 +282,32 @@ function initPeer(tryAsHost = true) {
         if (tryAsHost && err.type === 'unavailable-id') {
             log("Зафиксирован перехват регистрации: данный ID комнаты занят Хостом.");
             peer.destroy();
-            initPeer(false); // Пробуем зайти как Гость
+            initPeer(false); 
         } else {
             log(`Критическая ошибка PeerJS: ${err.type} - ${err.message}`, "error");
             handleConnectionLoss();
         }
     });
 
-    // Обработка входящих звонков (Медиа)
     peer.on('call', (call) => {
         log(`Входящий медиа-вызов от удаленного пира: ${call.peer}`);
+        
+        // Инжектим перехват SDP в PeerConnection объекта PeerJS до ответа
+        if (call.peerConnection) {
+            const pc = call.peerConnection;
+            const originalCreateOffer = pc.createOffer;
+            pc.createOffer = function(options) {
+                return originalCreateOffer.apply(this, arguments).then(offer => {
+                    offer.sdp = forceH264Codec(offer.sdp);
+                    return offer;
+                });
+            };
+        }
+
         call.answer(localStream);
         setupCallHandlers(call);
     });
 
-    // Обработка входящих дата-соединений (Чат/Холст/Служебные сообщения)
     peer.on('connection', (conn) => {
         log(`Входящий запрос синхронизации данных от ноды: ${conn.peer}`);
         setupDataHandlers(conn);
@@ -295,15 +340,12 @@ function handleConnectionLoss() {
     }, 5000);
 }
 
-// Функция для вызова другого участника (используется Гостями)
 function connectToPeer(targetID) {
     log(`Соединение с сигнальным сервером установлено. Вызов [${targetID}]...`);
     
-    // 1. Дата канал
     const conn = peer.connect(targetID, { reliable: true });
     setupDataHandlers(conn);
 
-    // 2. Медиа канал
     if (localStream) {
         const call = peer.call(targetID, localStream);
         setupCallHandlers(call);
@@ -313,6 +355,30 @@ function connectToPeer(targetID) {
 function setupCallHandlers(call) {
     if (connectedPeers.has(call.peer)) return;
     connectedPeers.add(call.peer);
+
+    // Логирование переговорного ICE-процесса WebRTC в консоль
+    if (call.peerConnection) {
+        const pc = call.peerConnection;
+        
+        log(`[ICE INTERFACE] Инициализация коннектора для: ${call.peer}`);
+        
+        pc.oniceconnectionstatechange = () => {
+            log(`[ICE STATE] Путь к ${call.peer} изменился на: -> ${pc.iceConnectionState.toUpperCase()}`, 
+                pc.iceConnectionState === 'failed' ? 'error' : (pc.iceConnectionState === 'connected' ? 'ok' : 'info'));
+            
+            if (pc.iceConnectionState === "connected") {
+                statusText.innerText = translations[currentLang].statusConnected;
+            }
+            if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "closed") {
+                log(`[ICE FAILURE] Прямой туннель пробить не удалось. Необходим TURN-ретранслятор.`, "error");
+                removePeerElements(call.peer);
+            }
+        };
+
+        pc.onicecandidateerror = (e) => {
+            console.warn(`[ICE CANDIDATE ERROR]: ${e.errorText} (Код: ${e.errorCode})`);
+        };
+    }
 
     call.on('stream', (remoteStream) => {
         log(`Детектированы активные пакеты удаленного MediaStream. Инжектируем видео-ноду...`, "ok");
@@ -329,7 +395,6 @@ function setupCallHandlers(call) {
         
         remoteVideo.srcObject = remoteStream;
         
-        // Обход автоплея на мобильных устройствах
         remoteVideo.play().catch(err => {
             log(`Обнаружен блок медиабезопасности для ${call.peer}: требуется действие клиента`, "error");
             if (overlay) overlay.style.display = 'flex';
@@ -339,7 +404,6 @@ function setupCallHandlers(call) {
             };
         });
 
-        statusText.innerText = translations[currentLang].statusConnected;
         log(`Аудио/Видео пайплайны работают на полной мощности`, "ok");
     });
 
@@ -358,30 +422,24 @@ function setupDataHandlers(conn) {
     activeDataConnections.add(conn);
 
     conn.on('open', () => {
-        log(`Слой Data Channel верифицирован и открыт для обмена пакетами`, "ok");
+        log(`Слой Data Channel верифицирован и открыт для обмена пакетами с ${conn.peer}`, "ok");
         
-        // Отправляем свой никнейм новому пиру
         conn.send({ type: "nickname", name: myNickname });
         
-        // ХОСТ-ЛОГИКА: координируем Mesh-сеть между гостями
         if (isHostMode) {
-            // 1. Рассказываем всем старым гостям про нового гостя
             activeDataConnections.forEach(existingConn => {
                 if (existingConn.peer !== conn.peer && existingConn.open) {
                     existingConn.send({ type: "new-guest-joined", peerId: conn.peer });
                 }
             });
-            // 2. Рассказываем новому гостю про всех уже существующих гостей в комнате
             knownGuests.forEach(existingGuestId => {
                 if (existingGuestId !== conn.peer) {
                     conn.send({ type: "new-guest-joined", peerId: existingGuestId });
                 }
             });
-            // 3. Добавляем нового гостя в свой список трекинга
             knownGuests.add(conn.peer); 
         }
         
-        // Передаем текущий холст новому пиру
         if (drawingHistory.length > 0) {
             conn.send({ type: "canvas-history", history: drawingHistory });
         }
@@ -390,7 +448,6 @@ function setupDataHandlers(conn) {
     conn.on('data', (data) => {
         if (!data || typeof data !== 'object') return;
 
-        // ИНТЕГРАЦИЯ: Перенаправление сетевых пакетов Пинг-Понга в game.js
         if (typeof handleNetworkData === 'function' && ['move', 'ball', 'hit', 'goal'].includes(data.type)) {
             handleNetworkData(data);
             return;
@@ -402,7 +459,6 @@ function setupDataHandlers(conn) {
                 break;
                 
             case "new-guest-joined":
-                // ГОСТЬ-ЛОГИКА: Получили от хоста ID другого гостя -> звоним ему напрямую
                 if (!isHostMode && data.peerId && data.peerId !== peer.id) {
                     log(`Получено уведомление о госте ${data.peerId}. Установка прямой связи Mesh...`);
                     connectToPeer(data.peerId);
@@ -448,7 +504,6 @@ function setupDataHandlers(conn) {
                 setTimeout(() => { location.reload(); }, 300);
                 break;
 
-            // ИНТЕГРАЦИЯ: Сигнал удаленного старта игры для Гостя
             case "start-pong-game":
                 log("Получен сигнал запуска матча от Хоста!");
                 if (typeof initGame === 'function') initGame();
@@ -471,7 +526,6 @@ function setupDataHandlers(conn) {
 function removePeerElements(peerId) {
     connectedPeers.delete(peerId);
     
-    // Удаляем объект соединения из сета Data-соед.
     activeDataConnections.forEach(c => {
         if (c.peer === peerId) activeDataConnections.delete(c);
     });
@@ -502,7 +556,7 @@ function appendChatMessage(sender, text) {
     const msg = document.createElement('div');
     msg.className = "chat-msg";
     msg.innerHTML = `<strong style="color:#89b4fa;">${sender}:</strong> <span></span>`;
-    msg.querySelector('span').innerText = text; // Защита от XSS
+    msg.querySelector('span').innerText = text; 
     chatMessages.appendChild(msg);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -522,9 +576,19 @@ function initCanvas() {
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
 
-    // Тач события для мобильных устройств
-    canvas.addEventListener('touchstart', (e) => { const t = e.touches[0]; startDrawing(getTouchPos(t)); e.preventDefault(); });
-    canvas.addEventListener('touchmove', (e) => { const t = e.touches[0]; draw(getTouchPos(t)); e.preventDefault(); });
+    // Тач события (Исправлено: прокидываем объект события для извлечения touch-координат)
+    canvas.addEventListener('touchstart', (e) => { 
+        const t = e.touches[0]; 
+        startDrawing(getTouchPos(t)); 
+        e.preventDefault(); 
+    }, { passive: false });
+    
+    canvas.addEventListener('touchmove', (e) => { 
+        const t = e.touches[0]; 
+        draw(getTouchPos(t)); 
+        e.preventDefault(); 
+    }, { passive: false });
+    
     canvas.addEventListener('touchend', () => { stopDrawing(); });
 
     undoBtn.addEventListener('click', localUndo);
@@ -535,8 +599,8 @@ function initCanvas() {
 function getTouchPos(touch) {
     const rect = canvas.getBoundingClientRect();
     return {
-        clientX: (touch.clientX - rect.left) * (canvas.width / rect.width),
-        clientY: (touch.clientY - rect.top) * (canvas.height / rect.height)
+        x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+        y: (touch.clientY - rect.top) * (canvas.height / rect.height)
     };
 }
 
@@ -550,7 +614,8 @@ function getMousePos(e) {
 
 function startDrawing(e) {
     isDrawing = true;
-    const pos = e.clientX !== undefined ? getMousePos(e) : { x: e.x, y: e.y };
+    // Определяем, пришел mouse event или готовый объект из getTouchPos
+    const pos = (e.clientX !== undefined) ? getMousePos(e) : { x: e.x, y: e.y };
     lastX = pos.x;
     lastY = pos.y;
     currentStroke = [];
@@ -559,7 +624,7 @@ function startDrawing(e) {
 
 function draw(e) {
     if (!isDrawing) return;
-    const pos = e.clientX !== undefined ? getMousePos(e) : { x: e.x, y: e.y };
+    const pos = (e.clientX !== undefined) ? getMousePos(e) : { x: e.x, y: e.y };
     
     const drawData = {
         x0: lastX, y0: lastY,
@@ -589,7 +654,7 @@ function drawSegment(data) {
     ctx.lineJoin = 'round';
     ctx.globalAlpha = data.opacity;
     ctx.stroke();
-    ctx.globalAlpha = 1.0; // Сброс
+    ctx.globalAlpha = 1.0; 
 }
 
 function stopDrawing() {
@@ -626,7 +691,6 @@ function localUndo() {
     }
 }
 
-// Повтор действия
 function localRedo() {
     if (redoStack.length > 0) {
         drawingHistory.push(redoStack.pop());
@@ -715,22 +779,19 @@ if (hostResetBtn) {
     });
 }
 
-// ИНТЕГРАЦИЯ: Привязка глобального метода отправки из game.js к нашему broadcast()
 function sendNetData(data) {
     broadcast(data);
 }
 
-// ИНТЕГРАЦИЯ: Обработчик клика на кнопку старта игры
 if (startGameBtn) {
     startGameBtn.addEventListener('click', () => {
         if (!isHostMode) return;
         log("Хост запускает игру Пинг-Понг...");
-        broadcast({ type: "start-pong-game" }); // Уведомляем клиента
-        if (typeof initGame === 'function') initGame(); // Запускаем у себя
+        broadcast({ type: "start-pong-game" }); 
+        if (typeof initGame === 'function') initGame(); 
     });
 }
 
-// Рассылка пакета данных всем активным дата-каналам
 function broadcast(data) {
     activeDataConnections.forEach(conn => {
         if (conn.open) {
