@@ -1,16 +1,40 @@
 let peer = null;
 let conn = null;
 let isHost = false;
-let roomId = "";
+let myRoomCode = "";
 let heartbeatInterval = null;
 
+// Элементы интерфейса
 const statusEl = document.getElementById('status');
 const menuEl = document.getElementById('menu');
 const btnCreate = document.getElementById('btnCreate');
-const btnShare = document.getElementById('btnShare');
 const btnJoin = document.getElementById('btnJoin');
-const joinSection = document.getElementById('joinSection');
 const consoleLog = document.getElementById('consoleLog');
+
+// Создаем новые элементы динамически, чтобы не ломать твою верстку
+const pinSection = document.createElement('div');
+pinSection.id = 'pinSection';
+pinSection.style.marginTop = '15px';
+pinSection.innerHTML = `
+    <div id="hostZone" style="display:none; text-align:center;">
+        <h2 style="font-size: 24px; color: #fff; margin-bottom: 10px;">КОД МАТЧА: <span id="displayCode" style="color: #00ffcc; letter-spacing: 2px;">----</span></h2>
+        <p style="font-size: 12px; color: #aaa;">Сообщите эти цифры второму игроку</p>
+        <button id="btnStartMatch" disabled style="display:none; margin-top:15px; padding: 12px 30px; font-weight:bold; background:#00ffcc; color:#000; border:none; border-radius:5px; cursor:pointer;">НАЧАТЬ МАТЧ</button>
+    </div>
+    <div id="guestZone" style="display:none; text-align:center;">
+        <input type="number" id="inputCode" placeholder="Введите код матча" style="padding: 12px; width: 80%; max-width: 250px; border-radius: 5px; border: 1px solid #444; background: #222; color: #fff; font-size: 18px; text-align: center; margin-bottom: 10px;">
+        <br>
+        <button id="btnConnectByCode" style="padding: 10px 25px; background: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">ПОДКЛЮЧИТЬСЯ</button>
+    </div>
+`;
+menuEl.appendChild(pinSection);
+
+const hostZone = document.getElementById('hostZone');
+const guestZone = document.getElementById('guestZone');
+const displayCode = document.getElementById('displayCode');
+const inputCode = document.getElementById('inputCode');
+const btnConnectByCode = document.getElementById('btnConnectByCode');
+const btnStartMatch = document.getElementById('btnStartMatch');
 
 function logToScreen(message, type = "INFO") {
     const time = new Date().toISOString().slice(11, 23);
@@ -18,14 +42,7 @@ function logToScreen(message, type = "INFO") {
     consoleLog.scrollTop = consoleLog.scrollHeight;
 }
 
-document.getElementById('btnClearLog').addEventListener('click', () => consoleLog.innerText = "");
-document.getElementById('btnCopyLog').addEventListener('click', () => {
-    navigator.clipboard.writeText(consoleLog.innerText)
-        .then(() => alert("Логи скопированы!"))
-        .catch(() => alert("Ошибка копирования"));
-});
-
-// Новая конфигурация: подключаем мощную глобальную сеть Twilio TURN
+// Конфигурация серверов с гарантированным TURN-релеем от Twilio
 const globalPeerConfig = {
     host: '0.peerjs.com',
     port: 443,
@@ -33,11 +50,8 @@ const globalPeerConfig = {
     secure: true,
     config: {
         'iceServers': [
-            // Резервный STUN Google
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
-            
-            // Профессиональный распределенный TURN-релей от Twilio (работает по всему миру)
             {
                 urls: 'turn:global.turn.twilio.com:3478?transport=udp',
                 username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
@@ -47,11 +61,6 @@ const globalPeerConfig = {
                 urls: 'turn:global.turn.twilio.com:3478?transport=tcp',
                 username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
                 credential: 'fOnb06q7fMv3gAnxS9Xg40Sg6Y34K3IofZ896z6VvY+9eH5wYI+l6/O8iZf0B1Hk'
-            },
-            {
-                urls: 'turns:global.turn.twilio.com:443?transport=tcp',
-                username: '6fbf82df31c778401311029c0b11545fc41b3e83921508dae763118cfeb5957d',
-                credential: 'fOnb06q7fMv3gAnxS9Xg40Sg6Y34K3IofZ896z6VvY+9eH5wYI+l6/O8iZf0B1Hk'
             }
         ],
         iceCandidatePoolSize: 12,
@@ -59,101 +68,98 @@ const globalPeerConfig = {
     }
 };
 
-// Сетевая геолокация
-async function detectLocation() {
-    logToScreen("Определяем сетевую геолокацию устройства...", "GEO");
-    try {
-        const response = await fetch('https://ipapi.co/json/');
-        if (!response.ok) throw new Error(`Код: ${response.status}`);
-        const data = await response.json();
-        logToScreen(`Локация: ${data.country_name || "???"}, г. ${data.city || "???"} (Провайдер: ${data.org || "???"})`, "GEO_SUCCESS");
-    } catch (err) {
-        logToScreen(`Геопозиция не определена: ${err.message}`, "GEO_WARN");
+// Генератор чисто цифровых кодов заданной длины
+function generateNumericCode(length) {
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += Math.floor(Math.random() * 10).toString();
     }
+    return result;
 }
 
-detectLocation();
-
-const urlParams = new URLSearchParams(window.location.search);
-const inviteRoomId = urlParams.get('room');
-
-if (inviteRoomId) {
-    roomId = inviteRoomId;
-    btnCreate.style.display = 'none';
-    joinSection.style.display = 'block';
-    statusEl.innerText = "Комната найдена!";
-    logToScreen(`Вход по ссылке. Ожидаемый ID Хоста: ${roomId}`);
-} else {
-    statusEl.innerText = "Создайте комнату";
-    logToScreen("Ожидание инициализации комнаты Хостом.");
-}
-
-btnCreate.addEventListener('click', createRoom);
-btnJoin.addEventListener('click', joinRoom);
-btnShare.addEventListener('click', shareLink);
-
-function createRoom() {
+btnCreate.addEventListener('click', () => {
     isHost = true;
-    btnCreate.disabled = true;
-    statusEl.innerText = "Регистрация...";
-    logToScreen("Подключение к сигнальному серверу PeerJS...");
+    btnCreate.style.display = 'none';
+    btnJoin.style.display = 'none';
+    hostZone.style.display = 'block';
+    
+    // Начинаем с 4 цифр, как ты просил
+    initHostWithCode(4); 
+});
 
-    peer = new Peer(globalPeerConfig); 
-    setupPeerDiagnostics();
-}
+btnJoin.addEventListener('click', () => {
+    isHost = false;
+    btnCreate.style.display = 'none';
+    btnJoin.style.display = 'none';
+    guestZone.style.display = 'block';
+    statusEl.innerText = "Ожидание ввода кода...";
+});
 
-function joinRoom() {
-    btnJoin.disabled = true;
-    statusEl.innerText = "Подключение...";
-    logToScreen(`Запуск сессии Гостя. Подготовка WebRTC...`);
+btnConnectByCode.addEventListener('click', () => {
+    const code = inputCode.value.trim();
+    if (code.length < 4) {
+        alert("Код слишком короткий!");
+        return;
+    }
+    btnConnectByCode.disabled = true;
+    statusEl.innerText = "Подключение к Хосту...";
+    logToScreen(`Запуск сессии Гостя. Попытка подключиться к коду: ${code}`);
 
     peer = new Peer(globalPeerConfig);
     
     peer.on('open', (id) => {
-        logToScreen(`Сигнальный слой Гостя готов. Локальный ID: ${id}`);
-        logToScreen(`Отправка P2P-запроса к Хостом [${roomId}]...`);
-        
-        conn = peer.connect(roomId, { reliable: false, serialization: 'json' });
-        setupConnectionHandlers();
-    });
-
-    setupPeerDiagnostics();
-}
-
-function setupPeerDiagnostics() {
-    if (!peer) return;
-
-    peer.on('open', (id) => {
-        if (isHost) {
-            roomId = id;
-            btnCreate.style.display = 'none';
-            btnShare.style.display = 'block';
-            statusEl.innerText = "Комната готова!";
-            logToScreen(`[Успех] Вы зарегистрированы как Хост. ID: ${id}`, "SUCCESS");
-            startHeartbeat();
-        }
-    });
-
-    peer.on('connection', (connection) => {
-        conn = connection;
-        logToScreen("СИГНАЛ: Зафиксирован входящий запрос от Гостя. Начинаем хэндшейк...", "NET");
+        logToScreen(`Сигнальный интерфейс Гостя запущен. Посылаем запрос...`);
+        conn = peer.connect(code, { reliable: false, serialization: 'json' });
         setupConnectionHandlers();
     });
 
     peer.on('error', (err) => {
-        let explain = "Неизвестная ошибка.";
-        switch(err.type) {
-            case 'browser-incompatible': explain = "Браузер или настройки ОС блокируют WebRTC API."; break;
-            case 'disconnected': explain = "Связь с сигнальным сервером PeerJS разорвана."; break;
-            case 'network': explain = "Сбой сети! Потеря пакетов между UA и USA."; break;
-            case 'peer-unavailable': explain = "Хост не найден! Вкладка закрыта, свернута или заблокирована системой."; break;
-            case 'socket-error': explain = "Низкоуровневая ошибка WebSocket."; break;
-            case 'socket-closed': explain = "Сокет закрыт. Браузер ушел в спящий режим."; break;
+        logToScreen(`[Ошибка Гостя] ${err.type}: ${err.message}`, "CRITICAL");
+        btnConnectByCode.disabled = false;
+    });
+});
+
+// Слушатель для кнопки старта (только для Хоста)
+btnStartMatch.addEventListener('click', () => {
+    logToScreen("Хост нажал кнопку старта. Отправляем команду запуска Гостю...", "SYS");
+    sendNetData({ type: 'START_GAME_TRIGGER' });
+    
+    // Запускаем игру у себя
+    menuEl.style.display = 'none';
+    initGame(); 
+});
+
+function initHostWithCode(digitsCount) {
+    myRoomCode = generateNumericCode(digitsCount);
+    displayCode.innerText = myRoomCode;
+    statusEl.innerText = `Регистрация кода ${myRoomCode}...`;
+    logToScreen(`Пробуем занять цифровой ID: ${myRoomCode} на сервере PeerJS...`);
+
+    // Передаем сгенерированный цифровой код в качестве фиксированного ID для PeerJS
+    peer = new Peer(myRoomCode, globalPeerConfig);
+
+    peer.on('open', (id) => {
+        statusEl.innerText = "Ждем подключения второго игрока...";
+        logToScreen(`[Успех] Код ${id} успешно забронирован. Хост готов!`, "SUCCESS");
+        startHeartbeat();
+    });
+
+    peer.on('connection', (connection) => {
+        conn = connection;
+        logToScreen("СИГНАЛ: Гость ввел правильный код и постучался. Начинаем стыковку каналов...", "NET");
+        setupConnectionHandlers();
+    });
+
+    peer.on('error', (err) => {
+        // Если код уже занят кем-то в мире (ошибка unavailable-id / id-taken)
+        if (err.type === 'unavailable-id' || err.type === 'id-taken') {
+            logToScreen(`Код ${myRoomCode} уже занят на сервере. Повышаем разрядность до ${digitsCount + 1}...`, "WARN");
+            peer.destroy();
+            // Рекурсивно генерируем более длинный код (до 10 цифр по правилу 2)
+            initHostWithCode(Math.min(digitsCount + 1, 10));
+        } else {
+            logToScreen(`[Ошибка Хоста] ${err.type}: ${err.message}`, "CRITICAL");
         }
-        logToScreen(`[СБОЙ СЕРВЕРА] Тип: ${err.type} | Анализ: ${explain}`, "CRITICAL");
-        btnCreate.disabled = false;
-        btnJoin.disabled = false;
-        statusEl.innerText = `Ошибка: ${err.type}`;
     });
 }
 
@@ -162,64 +168,54 @@ function setupConnectionHandlers() {
 
     const rtcPC = conn.peerConnection;
     if (rtcPC) {
-        logToScreen("Мониторинг портов WebRTC активирован.", "ICE");
-        
         rtcPC.onicecandidate = (event) => {
             if (event.candidate) {
                 const c = event.candidate;
-                let serverType = "Неизвестный сервер";
-                
-                if (c.candidate.includes("host")) serverType = "Локальный интерфейс устройства (Host IP)";
-                else if (c.candidate.includes("srflx")) serverType = "Публичный IP через STUN Google (Reflexive)";
-                else if (c.candidate.includes("relay")) serverType = "Ретранслятор Twilio TURN (Relay Мост)";
-
-                const ipType = c.address && c.address.includes(":") ? "IPv6" : "IPv4";
-                const logAddr = c.address ? `${c.address}:${c.port}` : "скрыт/защищен";
-                
-                logToScreen(`[Генерация шлюза] -> ${serverType} | Протокол: ${c.protocol.toUpperCase()} | Семья: ${ipType} | Адрес: ${logAddr}`, "ICE_CANDIDATE");
-            } else {
-                logToScreen("Сбор доступных сетевых шлюзов на этом устройстве завершен.", "ICE_INFO");
+                let serverType = c.candidate.includes("relay") ? "Twilio TURN" : "STUN/Direct";
+                logToScreen(`[Шлюз] ${serverType} | ${c.protocol.toUpperCase()} | ${c.address}:${c.port}`, "ICE");
             }
         };
 
         rtcPC.oniceconnectionstatechange = () => {
-            let desc = "";
-            switch(rtcPC.iceConnectionState) {
-                case 'checking': desc = "Тестируем совместимость портов Win11 ⇄ iOS..."; break;
-                case 'connected': desc = "Маршрутизация успешна! Сигнал проходит через релей."; break;
-                case 'completed': desc = "Сборка стабильного моста завершена."; break;
-                case 'failed': desc = "Крах пробития NAT! Защита сети заблокировала порты."; break;
-                case 'disconnected': desc = "Потеря пакетов. Попытка перестроиться..."; break;
-                case 'closed': desc = "Канал связи уничтожен."; break;
-            }
-            logToScreen(`[Статус стыковки] State: ${rtcPC.iceConnectionState.toUpperCase()} -> ${desc}`, "ICE_STATE");
+            logToScreen(`[WebRTC State]: ${rtcPC.iceConnectionState.toUpperCase()}`, "ICE_STATE");
         };
     }
 
     conn.on('open', () => {
-        statusEl.innerText = "Связь установлена!";
-        logToScreen("Бинго! Тоннель данных открыт. Запуск игры...", "SUCCESS");
-        menuEl.style.display = 'none';
         clearInterval(heartbeatInterval);
-        initGame();
+        
+        if (isHost) {
+            statusEl.innerText = "Игрок подключен! Нажмите 'Начать матч'";
+            logToScreen("Канал связи открыт! Кнопка старта разблокирована.", "SUCCESS");
+            btnStartMatch.style.display = 'inline-block';
+            btnStartMatch.disabled = false; // Разрешаем Хосту запустить игру
+        } else {
+            statusEl.innerText = "Успешное подключение! Ждем команду старта от Хоста...";
+            logToScreen("Канал связи открыт! Ожидание ручного запуска игры Хостом...", "SUCCESS");
+        }
     });
 
     conn.on('data', (data) => {
         if (data.type === 'ping') return;
+        
+        // Перехватываем команду на запуск игры (для Гостя)
+        if (data.type === 'START_GAME_TRIGGER') {
+            logToScreen("Получена команда старта от Хоста! Запускаем графический движок.", "SUCCESS");
+            menuEl.style.display = 'none';
+            initGame(); // Запуск игры в game.js
+            return;
+        }
+
         if (data.type !== 'move' && data.type !== 'ball') {
-            logToScreen(`[Сеть RX] Получен тип: ${data.type}`, "DATA");
+            logToScreen(`[Пакет RX] Тип: ${data.type}`, "DATA");
         }
         handleNetworkData(data);
     });
 
     conn.on('close', () => {
-        logToScreen("Канал связи закрыт удаленной стороной.", "WARN");
-        alert("Соединение потеряно.");
+        logToScreen("Соединение прервано.", "WARN");
+        alert("Оппонент отключился.");
         window.location.reload();
-    });
-    
-    conn.on('error', (err) => {
-        logToScreen(`[Ошибка Канала Данных] ${err.message}`, "ERROR");
     });
 }
 
@@ -227,23 +223,6 @@ function sendNetData(data) {
     if (conn && conn.open) {
         conn.send(data);
     }
-}
-
-function shareLink() {
-    const inviteLink = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-    
-    // Прямое копирование без вызова системного окна iOS (предотвращает ошибку 'network')
-    navigator.clipboard.writeText(inviteLink)
-        .then(() => {
-            logToScreen("Ссылка успешно скопирована в буфер обмена без обрыва сети!", "SUCCESS");
-            statusEl.innerText = "Ссылка в буфере! Отправьте её другу.";
-            alert("Ссылка скопирована! Отправьте её другу в мессенджер.");
-        })
-        .catch(e => {
-            logToScreen(`Ошибка копирования: ${e.message}`, "WARN");
-            // Запасной ручной вариант, если заблокирован клипборд
-            prompt("Скопируйте ссылку вручную:", inviteLink);
-        });
 }
 
 function startHeartbeat() {
