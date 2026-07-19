@@ -25,21 +25,30 @@ document.getElementById('btnCopyLog').addEventListener('click', () => {
         .catch(() => alert("Ошибка копирования"));
 });
 
-// Сверхнадежная глобальная конфигурация (Выделенный порт + STUN-пул)
+// Глобальная конфигурация с STUN и TURN серверами для обхода любых NAT (UA <-> USA)
 const globalPeerConfig = {
     host: '0.peerjs.com',
     port: 443,
     path: '/',
     secure: true,
-    debug: 3, // Включает детальный лог в консоль браузера
     config: {
         'iceServers': [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
             { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' }
+            // Включаем бесплатный TURN-релей на случай жесткого файрвола у оператора
+            {
+                urls: 'turn:openrelay.metered.ca:443',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            },
+            {
+                urls: 'turn:openrelay.metered.ca:80',
+                username: 'openrelayproject',
+                credential: 'openrelayproject'
+            }
         ],
+        iceCandidatePoolSize: 10,
         sdpSemantics: 'unified-plan'
     }
 };
@@ -66,9 +75,8 @@ function createRoom() {
     isHost = true;
     btnCreate.disabled = true;
     statusEl.innerText = "Запрос глобальной комнаты...";
-    logToScreen("Подключение к защищенному серверу 0.peerjs.com...");
+    logToScreen("Регистрация Хоста на сервере PeerJS...");
 
-    // Передаем полную конфигурацию
     peer = new Peer(globalPeerConfig); 
     
     peer.on('open', (id) => {
@@ -77,13 +85,15 @@ function createRoom() {
         btnShare.style.display = 'block';
         statusEl.innerText = "Матч готов. Отправьте ссылку!";
         logToScreen(`Сервер выделил ID: ${id}. Комната активна.`, "SUCCESS");
-        startHeartbeat(); // Держим соединение с сервером активным
+        startHeartbeat();
     });
 
     peer.on('connection', (connection) => {
         conn = connection;
-        logToScreen("Входящий запрос на соединение (WebRTC handshake)...", "NET");
-        setupConnection();
+        logToScreen("Входящий P2P запрос! Привязка обработчиков данных...", "NET");
+        
+        // На стороне Хоста ВАЖНО сразу вешать события, как только прилетел коннект
+        setupConnectionHandlers();
     });
     
     peer.on('error', (err) => {
@@ -95,92 +105,97 @@ function createRoom() {
 
 function shareLink() {
     const inviteLink = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-    logToScreen(`Ссылка для друга сгенерирована.`);
+    logToScreen(`Шеринг инвайта...`);
     if (navigator.share) {
         navigator.share({ title: 'Rocket Tennis UA-USA', url: inviteLink })
-            .then(() => logToScreen("Ссылка успешно отправлена."))
-            .catch(e => logToScreen(`Шеринг прерван: ${e.message}`, "WARN"));
+            .then(() => logToScreen("Ссылка отправлена."))
+            .catch(e => logToScreen(`Отмена шеринга: ${e.message}`, "WARN"));
     } else {
         navigator.clipboard.writeText(inviteLink);
-        logToScreen("Прямой шеринг недоступен. Скопировано в буфер.");
+        logToScreen("Скопировано в буфер обмена.");
         alert("Ссылка скопирована!");
     }
 }
 
 function joinRoom() {
     btnJoin.disabled = true;
-    statusEl.innerText = "Пробиваем NAT/Файрволы...";
-    logToScreen(`Инициализация Гостя. Попытка пробить маршрут к ${roomId}...`, "NET");
+    statusEl.innerText = "Пробиваем NAT/TURN...";
+    logToScreen(`Инициализация Гостя. Поиск маршрута к ${roomId}...`, "NET");
 
     peer = new Peer(globalPeerConfig);
     
     peer.on('open', () => {
-        logToScreen("Глобальный сетевой слой Гостя готов. Подключаемся напрямую к Хосту...");
+        logToScreen("Сетевой слой Гостя готов. Инициация рукопожатия...");
+        
+        // Создаем подключение
         conn = peer.connect(roomId, { 
             reliable: false,
             serialization: 'json'
         });
-        setupConnection();
+        
+        // На стороне Гостя вешаем события СРАЗУ ЖЕ после вызова connect
+        setupConnectionHandlers();
     });
 
     peer.on('error', (err) => {
         logToScreen(`Ошибка Гостя [${err.type}]: ${err.message}`, "ERROR");
-        if(err.type === 'peer-unavailable') {
-            logToScreen("Хост не найден. Убедитесь, что Игрок 1 не закрыл вкладку на iPhone!", "WARN");
-        }
         btnJoin.disabled = false;
     });
 }
 
-function setupConnection() {
+// Вынесли обработчики в отдельную функцию, чтобы исключить рассинхронизацию вызовов в Safari
+function setupConnectionHandlers() {
+    if (!conn) return;
+
     conn.on('open', () => {
         statusEl.innerText = "Соединение установлено!";
-        logToScreen("P2P канал UA ⇄ USA открыт! Переходим к запуску графики.", "SUCCESS");
+        logToScreen("Бинго! P2P канал успешно пробит через TURN/STUN.", "SUCCESS");
         menuEl.style.display = 'none';
         
-        // Останавливаем серверный пинг, теперь пингуем напрямую игрока
         clearInterval(heartbeatInterval);
-        initGame();
+        initGame(); // Запуск графики в game.js
     });
 
     conn.on('data', (data) => {
         if (data.type === 'ping') {
-            // Игнорируем технический пинг в игровом движке, просто логируем
-            logToScreen("KEEP-ALIVE: Пакет удержания сети получен.", "SYS");
+            logToScreen("KEEP-ALIVE: Пакет удержания сети.", "SYS");
             return;
         }
-        logToScreen(`INBOUND: [${data.type}]`, "RX");
+        // Чтобы не спамить в консоль движения ракеток, логируем только важные события
+        if (data.type !== 'move' && data.type !== 'ball') {
+            logToScreen(`INBOUND: [${data.type}] ${JSON.stringify(data)}`, "RX");
+        }
         handleNetworkData(data);
     });
 
     conn.on('close', () => {
-        logToScreen("Сеть закрыта удаленной стороной.", "WARN");
+        logToScreen("Соединение разорвано удаленной стороной.", "WARN");
         alert("Соединение потеряно.");
         window.location.reload();
+    });
+    
+    conn.on('error', (err) => {
+        logToScreen(`Ошибка P2P канала: ${err.message}`, "ERROR");
     });
 }
 
 function sendNetData(data) {
     if (conn && conn.open) {
         conn.send(data);
-        // Не спамим TX логами каждую миллисекунду, чтобы iPhone не тормозил, 
-        // логируем в консоль только голы, удары и системные тики
         if (data.type !== 'move' && data.type !== 'ball') {
             logToScreen(`OUTBOUND: [${data.type}]`, "TX");
         }
     }
 }
 
-// Функция удержания соединения (предотвращает засыпание Safari на iOS)
 function startHeartbeat() {
     clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
-        if (peer && !peer.destroyed) {
+        if (peer && !peer.destroyed && peer.socket) {
             peer.socket.send({ type: 'HEARTBEAT' });
-            logToScreen("Серверный пинг отправлен (стабилизация сессии)", "SYS");
         }
         if (conn && conn.open) {
             conn.send({ type: 'ping' });
         }
-    }, 5000);
+    }, 4000); // Чуть ускорили пинг для агрессивного Safari
 }
