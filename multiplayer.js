@@ -231,15 +231,19 @@ function sendNetData(data) {
 
 function shareLink() {
     const inviteLink = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
-    if (navigator.share) {
-        navigator.share({ title: 'Rocket Tennis', url: inviteLink })
-            .then(() => logToScreen("Ссылка отправлена."))
-            .catch(e => logToScreen(`Шеринг отменен: ${e.message}`, "WARN"));
-    } else {
-        navigator.clipboard.writeText(inviteLink);
-        logToScreen("Ссылка скопирована в буфер.");
-        alert("Ссылка скопирована!");
-    }
+    
+    // Прямое копирование без вызова системного окна iOS (предотвращает ошибку 'network')
+    navigator.clipboard.writeText(inviteLink)
+        .then(() => {
+            logToScreen("Ссылка успешно скопирована в буфер обмена без обрыва сети!", "SUCCESS");
+            statusEl.innerText = "Ссылка в буфере! Отправьте её другу.";
+            alert("Ссылка скопирована! Отправьте её другу в мессенджер.");
+        })
+        .catch(e => {
+            logToScreen(`Ошибка копирования: ${e.message}`, "WARN");
+            // Запасной ручной вариант, если заблокирован клипборд
+            prompt("Скопируйте ссылку вручную:", inviteLink);
+        });
 }
 
 function startHeartbeat() {
