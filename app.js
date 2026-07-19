@@ -15,6 +15,9 @@ const connectedPeers = new Set();        // Хранит медиа-вызовы
 const activeDataConnections = new Set(); // Хранит дата-каналы (DataConnection)
 const knownGuests = new Set();           // Используется Хостом для трекинга списка гостей
 
+// Глобальные переменные для Пинг-Понга (из game.js)
+let isHost = false; 
+
 // Переменные для рисования холста
 let canvas, ctx;
 let isDrawing = false;
@@ -68,7 +71,7 @@ const translations = {
         statusGuestConnect: "Подключение к хосту...",
         statusConnected: "Соединение установлено!",
         statusReconnecting: "Связь утеряна. Переподключение...",
-        modalText: "Ваш браузер заблокировал фоновый звук. Нажмите для активации трансляции.",
+        modalText: "Ваш browser заблокировал фоновый звук. Нажмите для активации трансляции.",
         btnModal: "Включить звук",
         btnCopied: "Скопировано!",
         btnCopy: "Копировать логи"
@@ -106,6 +109,9 @@ const usernameInput = document.getElementById('usernameInput');
 const saveNameBtn = document.getElementById('saveNameBtn');
 const overlay = document.getElementById('audioActivationOverlay');
 const audioActivateBtn = document.getElementById('audioActivateBtn');
+
+// ИНТЕГРАЦИЯ: Кнопка старта игры из HTML
+const startGameBtn = document.getElementById('startGameBtn');
 
 function log(message, type = "info") {
     const timestamp = new Date().toLocaleTimeString();
@@ -203,10 +209,10 @@ function initPeer(tryAsHost = true) {
         config: {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302', url: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302', url: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302', url: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302', url: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302', url: 'stun:stun4.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302', url: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302', url: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302', url: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302', url: 'stun:stun4.l.google.com:19302' }
             ]
         }
     });
@@ -215,14 +221,18 @@ function initPeer(tryAsHost = true) {
         isReconnecting = false;
         if (tryAsHost) {
             isHostMode = true;
+            isHost = true; // Синхронизируем роль для физики в game.js
             log(`Узел зарегистрирован как Хост в комнате: ${id}`, "ok");
             statusText.innerText = translations[currentLang].statusHostWait;
             if (hostResetBtn) hostResetBtn.style.display = 'inline-block';
+            if (startGameBtn) startGameBtn.style.display = 'inline-block'; // Хост может запустить игру
         } else {
             isHostMode = false;
+            isHost = false; // Мы гость
             log(`Генерация гостевой ссылки. Локальный Peer ID: ${id}`, "ok");
             statusText.innerText = translations[currentLang].statusGuestConnect;
             if (hostResetBtn) hostResetBtn.style.display = 'none';
+            if (startGameBtn) startGameBtn.style.display = 'none'; // Гость ждет хоста
             
             // Клиент звонит на Хост
             connectToPeer(ROOM_ID);
@@ -380,6 +390,12 @@ function setupDataHandlers(conn) {
     conn.on('data', (data) => {
         if (!data || typeof data !== 'object') return;
 
+        // ИНТЕГРАЦИЯ: Перенаправление сетевых пакетов Пинг-Понга в game.js
+        if (typeof handleNetworkData === 'function' && ['move', 'ball', 'hit', 'goal'].includes(data.type)) {
+            handleNetworkData(data);
+            return;
+        }
+
         switch (data.type) {
             case "nickname":
                 log(`Пир представился как: "${data.name}"`);
@@ -430,6 +446,12 @@ function setupDataHandlers(conn) {
             case "remote-force-reload":
                 log("Получена системная команда на жесткую перезагрузку комнаты...");
                 setTimeout(() => { location.reload(); }, 300);
+                break;
+
+            // ИНТЕГРАЦИЯ: Сигнал удаленного старта игры для Гостя
+            case "start-pong-game":
+                log("Получен сигнал запуска матча от Хоста!");
+                if (typeof initGame === 'function') initGame();
                 break;
         }
     });
@@ -512,7 +534,6 @@ function initCanvas() {
 
 function getTouchPos(touch) {
     const rect = canvas.getBoundingClientRect();
-    // Пересчет координат с учетом масштабирования CSS
     return {
         clientX: (touch.clientX - rect.left) * (canvas.width / rect.width),
         clientY: (touch.clientY - rect.top) * (canvas.height / rect.height)
@@ -580,9 +601,7 @@ function stopDrawing() {
 
 function remoteDraw(data) {
     drawSegment(data);
-    // Добавляем точки к истории
     if (drawingHistory.length === 0 || Array.isArray(drawingHistory[drawingHistory.length - 1])) {
-        // Чтобы не ломать логику undo, создаем симуляцию мазков для входящих битовых точек
         drawingHistory.push([data]);
     } else {
         drawingHistory[drawingHistory.length - 1].push(data);
@@ -607,6 +626,7 @@ function localUndo() {
     }
 }
 
+// Повтор действия
 function localRedo() {
     if (redoStack.length > 0) {
         drawingHistory.push(redoStack.pop());
@@ -664,7 +684,6 @@ flipCamBtn.addEventListener('click', async () => {
         localStream.addTrack(newTrack);
         localVideo.srcObject = localStream;
 
-        // Обновляем видеопоток у всех подключенных участников
         activeDataConnections.forEach(conn => {
             const peerId = conn.peer;
             if (peer && peer.connections[peerId]) {
@@ -676,7 +695,6 @@ flipCamBtn.addEventListener('click', async () => {
             }
         });
         
-        // Зеркальное отображение только для фронтальной камеры
         localVideo.style.transform = (currentFacingMode === "user") ? "scaleX(-1)" : "none";
         log("Камера успешно изменена прямо в текущей WebRTC сессии.", "ok");
     } catch (err) {
@@ -688,13 +706,27 @@ if (hostResetBtn) {
     hostResetBtn.addEventListener('click', () => {
         if (!isHostMode) return;
         log("Инициирован полный сброс комнаты хостом...");
-        
         broadcast({ type: "remote-force-reload" });
 
         setTimeout(() => {
             if (peer) peer.destroy();
             location.reload();
         }, 800);
+    });
+}
+
+// ИНТЕГРАЦИЯ: Привязка глобального метода отправки из game.js к нашему broadcast()
+function sendNetData(data) {
+    broadcast(data);
+}
+
+// ИНТЕГРАЦИЯ: Обработчик клика на кнопку старта игры
+if (startGameBtn) {
+    startGameBtn.addEventListener('click', () => {
+        if (!isHostMode) return;
+        log("Хост запускает игру Пинг-Понг...");
+        broadcast({ type: "start-pong-game" }); // Уведомляем клиента
+        if (typeof initGame === 'function') initGame(); // Запускаем у себя
     });
 }
 
