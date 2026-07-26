@@ -1,63 +1,1895 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Intercontinental Rocket Tennis</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-        body { background: #111; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; flex-direction: column; width: 100vw; height: 100vh; overflow: hidden; position: fixed; }
-        
-        /* Игровая зона */
-        #gameContainer { position: relative; width: 100%; height: 65vh; background: #142214; }
-        #gameCanvas { display: block; width: 100%; height: 100%; }
-        
-        #menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; z-index: 10; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 16px; width: 90%; max-width: 340px; backdrop-filter: blur(10px); }
-        button { background: #007aff; border: none; color: white; padding: 14px; font-size: 15px; margin: 8px 0; cursor: pointer; border-radius: 12px; width: 100%; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-        button:active { filter: brightness(0.8); }
-        #btnShare { background: #34c759; display: none; }
-        
-        #status { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); font-size: 14px; z-index: 5; font-weight: 600; text-align: center; background: rgba(0,0,0,0.7); padding: 6px 14px; border-radius: 20px; pointer-events: none; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="darkreader-lock">
+<meta name="color-scheme" content="dark">
+<title>BUCKET ASMR Free</title>
 
-        /* Зона Консоли */
-        #consoleContainer { width: 100%; height: 35vh; background: #000; border-top: 2px solid #333; display: flex; flex-direction: column; }
-        #consoleHeader { background: #1c1c1e; padding: 6px 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2c2c2e; }
-        #consoleHeader span { font-size: 12px; font-weight: bold; color: #ff9500; font-family: monospace; }
-        .console-buttons { display: flex; gap: 8px; }
-        .c-btn { background: #2c2c2e; padding: 6px 12px; font-size: 12px; border-radius: 6px; width: auto; margin: 0; color: #fff; }
-        #consoleLog { flex: 1; padding: 8px; overflow-y: scroll; font-family: monospace; font-size: 11px; color: #00ff00; background: #050505; white-space: pre-wrap; word-break: break-all; }
-    </style>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="manifest" href="site.webmanifest">
+
+<style>
+  /* Основной интерфейс */
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    background: #050505; 
+    transition: background 1.5s ease;
+    font-family: 'Segoe UI', sans-serif; color: white; overflow: hidden;
+    touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  }
+  
+  /* Градиенты времени суток */
+  body.tod-morning { background: linear-gradient(180deg, #ff9a9e 0%, #fecfef 50%, #a1c4fd 100%); }
+  body.tod-noon { background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%); }
+  body.tod-evening { background: linear-gradient(180deg, #2c3e50 0%, #fd746c 70%, #ff8235 100%); }
+  body.tod-night { background: radial-gradient(ellipse at bottom, #050505 0%, #0a0a1f 100%); }
+
+  .overlay { 
+    position: absolute; top:0; left:0; right:0; bottom:0; 
+    background: rgba(0,0,0,0.3); z-index:3; pointer-events: none; 
+    transition: background 1.5s ease;
+  }
+
+  /* Вспышка молнии при грозе */
+  .lightning-flash {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #ffffff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 8;
+    transition: opacity 0.05s ease-out;
+  }
+  
+  /* Контейнер для облаков */
+  .clouds-container {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 2; overflow: hidden;
+    opacity: 0; transition: opacity 2s ease-in-out;
+  }
+  .clouds-container.visible { opacity: 0.85; }
+
+  .cloud {
+    position: absolute;
+    background: rgba(200, 210, 225, 0.55);
+    border-radius: 100px;
+    filter: blur(10px);
+    animation: floatClouds linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: ''; position: absolute; background: rgba(200, 210, 225, 0.55); border-radius: 50%;
+  }
+  .cloud1 { width: 220px; height: 65px; top: 5%; left: -240px; animation-duration: 35s; }
+  .cloud1::before { width: 100px; height: 100px; top: -45px; left: 30px; }
+  .cloud1::after { width: 80px; height: 80px; top: -35px; left: 100px; }
+
+  .cloud2 { width: 320px; height: 95px; top: 12%; left: -350px; animation-duration: 50s; animation-delay: 10s; }
+  .cloud2::before { width: 140px; height: 140px; top: -65px; left: 50px; }
+  .cloud2::after { width: 110px; height: 110px; top: -45px; left: 150px; }
+
+  .cloud3 { width: 180px; height: 50px; top: 22%; left: -200px; animation-duration: 28s; animation-delay: 5s; }
+  .cloud3::before { width: 70px; height: 70px; top: -30px; left: 20px; }
+  .cloud3::after { width: 60px; height: 60px; top: -25px; left: 75px; }
+
+  @keyframes floatClouds {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(calc(100vw + 450px)); }
+  }
+
+  .container { position: relative; z-index: 10; display:flex; flex-direction: column; align-items:center; padding: 20px 20px 90px 20px; height: 100vh; box-sizing: border-box; }
+  
+  .title-bar { display:flex; align-items:center; gap:15px; margin-bottom:15px; z-index: 1000; transition: opacity 0.5s; }
+  h1 { margin:0; font-size:24px; color:#ffb400; text-shadow:0 0 10px rgba(0,0,0,0.5); }
+  
+  .live-counter {
+    background: rgba(255, 50, 50, 0.15);
+    border: 1px solid rgba(255, 50, 50, 0.4);
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; color: #ff8080;
+    display: none !important; 
+    display: flex; align-items: center; gap: 5px; text-transform: uppercase;
+  }
+  .live-dot { width: 6px; height: 6px; background: #ff3030; border-radius: 50%; animation: blink 1.5s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  #settingsBtn {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0 12px;
+    height: 35px;
+    border-radius: 20px;
+    color: white;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    backdrop-filter: blur(5px);
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .lang-btn-ui { background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.4); padding: 8px 16px; border-radius: 10px; color: white; cursor: pointer; font-weight: bold; min-width: 45px; }
+
+  .controls { margin-bottom:15px; display:flex; gap:10px; flex-wrap: wrap; justify-content: center; align-items: center; z-index: 10; transition: opacity 0.5s; }
+  .controls > button { padding:8px 14px; border:none; border-radius:12px; background: rgba(255,255,255,0.2); color:white; cursor:pointer; font-weight:bold; backdrop-filter: blur(5px); font-size: 13px; transition: 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  
+  #randomBtn { background: rgba(138, 43, 226, 0.5); border: 1px solid rgba(138, 43, 226, 0.4); min-width: 80px; }
+  #sleepBtn.active { background: #ffb400; border: 1px solid #ffb400; color: black; box-shadow: 0 0 15px rgba(255, 180, 0, 0.4); }
+
+  .sound-grid { 
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); 
+    gap: 15px; width: 100%; max-width: 600px; padding: 10px; 
+    overflow-y: auto; flex-grow: 1; z-index: 5; transition: opacity 0.5s, visibility 0.5s;
+  }
+  .sound-grid.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .sound-button { 
+    aspect-ratio: 1/1; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
+    background: rgba(0,0,0,0.2); color: rgba(255,255,255,0.7); 
+    font-weight: bold; cursor: pointer; display: flex; flex-direction: column; 
+    justify-content: center; align-items: center; backdrop-filter: blur(8px);
+    transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); font-size: 11px; text-align: center; 
+    position: relative; overflow: hidden; padding: 5px;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+  }
+  
+  .sound-button::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4); opacity: 1; transition: opacity 0.4s; z-index: 1;
+  }
+  .sound-button.ready::before { background: rgba(0,0,0,0.25); }
+  .sound-button.active::before { background: rgba(0,0,0,0.1); }
+
+  .sound-button span { position: relative; z-index: 2; pointer-events: none; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+  .sound-button.ready { color: white; background-color: rgba(255,255,255,0.12); }
+  
+  .sound-button.active { 
+    color: white; 
+    transform: scale(1.03); 
+    border: 1px solid #8a2be2 !important; 
+    box-shadow: 0 0 20px rgba(138, 43, 226, var(--fx-opacity, 0.6)), inset 0 0 10px rgba(138, 43, 226, var(--fx-opacity, 0.4)); 
+  }
+  .sound-button.is-fav { border: 1px solid #ffb400; }
+  .sound-button.active.is-fav { border: 1px solid #8a2be2 !important; }
+  
+  .sound-button.locked {
+    border: 1px dashed rgba(255,255,255,0.25) !important;
+    background-image: none !important;
+    cursor: pointer;
+  }
+  .sound-button.locked::before {
+    background: rgba(0, 0, 0, 0.65) !important;
+  }
+  .lock-icon {
+    position: absolute; top: 8px; left: 8px; font-size: 12px; z-index: 3; color: #ffb400;
+    background: rgba(0,0,0,0.6); padding: 3px 5px; border-radius: 6px; line-height: 1;
+  }
+
+  .custom-select-container { position: relative; }
+  .select-trigger { padding: 8px 14px; border-radius: 12px; background: rgba(255, 255, 255, 0.2); color: white; cursor: pointer; font-weight: bold; font-size: 13px; min-width: 90px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  
+  .custom-dropdown, .fav-dropdown { 
+    display: none; position: absolute; top: 40px; left: 50%; transform: translateX(-50%); 
+    background: #1e1e2d; border-radius: 15px; flex-direction: column; z-index: 3000; 
+    overflow: hidden; min-width: 120px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); 
+  }
+  .custom-dropdown.open, .fav-dropdown.open { display: flex; }
+  .custom-dropdown button { padding: 12px; border: none; background: transparent; color: white; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: bold; }
+
+  .fav-dropdown { width: 180px; max-height: 250px; overflow-y: auto; padding: 5px; }
+  .fav-item { display: flex; align-items: center; gap: 10px; padding: 10px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .fav-item:last-child { border-bottom: none; }
+  .fav-item input { cursor: pointer; accent-color: #ffb400; }
+  .fav-item label { cursor: pointer; font-size: 13px; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; }
+  #stars { z-index: 1; transition: opacity 2s; }
+  #weatherCanvas { z-index: 3; }
+  #steamCanvas { z-index: 4; }
+  
+  .modal { 
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.6); z-index: 10001; justify-content: center; align-items: center; 
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+  }
+  .modal-content { background: linear-gradient(145deg, #141423, #0a0a1f); border: 1px solid #ffb400; padding: 25px; border-radius: 30px; text-align: left; color: white; max-width: 85%; width: 400px; max-height: 85vh; overflow-y: auto; box-shadow: 0 0 40px rgba(255, 180, 0, 0.2); position: relative; }
+  .modal-tabs { display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
+  .tab-btn { background: none; border: none; color: #666; font-weight: bold; cursor: pointer; font-size: 14px; padding: 5px 0; position: relative; }
+  .tab-btn.active { color: #ffb400; }
+  .tab-btn.active::after { content: ''; position: absolute; bottom: -11px; left: 0; width: 100%; height: 2px; background: #ffb400; }
+  .help-section { display: none; }
+  .help-section.active { display: block; }
+  .help-list { list-style: none; padding: 0; margin: 0; }
+  .help-list li { margin-bottom: 12px; font-size: 13px; line-height: 1.4; color: #ddd; display: flex; align-items: flex-start; gap: 8px; }
+  .help-list li b { color: #ffb400; }
+  .help-list li span { color: #ffb400; }
+  .modal-btn { background:#ffb400; border:none; padding:14px; border-radius:15px; font-weight:bold; cursor:pointer; color:black; font-size: 15px; width: 100%; margin-top: 15px; text-transform: uppercase; text-align: center; text-decoration: none; display: block; box-sizing: border-box; }
+
+  /* Элементы управления в Настройках */
+  .settings-group { margin-bottom: 18px; }
+  .settings-group label { display: block; font-size: 13px; font-weight: bold; color: #ffb400; margin-bottom: 8px; }
+  .settings-select, .settings-range {
+    width: 100%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: white; padding: 10px; border-radius: 12px; font-size: 13px; outline: none; box-sizing: border-box;
+  }
+  .settings-select option { background: #141423; color: white; }
+  .settings-range { accent-color: #ffb400; cursor: pointer; height: 6px; padding: 0; }
+  .range-container { display: flex; align-items: center; gap: 10px; }
+  .range-value { font-size: 12px; color: #ccc; min-width: 35px; text-align: right; }
+
+  .help-open-btn {
+    background: rgba(255, 180, 0, 0.15); border: 1px solid #ffb400; color: #ffb400;
+    padding: 12px; border-radius: 15px; font-weight: bold; cursor: pointer; width: 100%;
+    margin-bottom: 20px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .mute-btn { display: none !important; pointer-events: none !important; }
+
+  /* Стиль кнопок выбора погоды */
+  .weather-option-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 180, 0, 0.3);
+    color: white;
+    padding: 12px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+  }
+  .weather-option-btn:hover, .weather-option-btn:active {
+    background: rgba(255, 180, 0, 0.2);
+    border-color: #ffb400;
+    transform: translateY(-2px);
+  }
+  .weather-option-btn span.icon {
+    font-size: 20px;
+  }
+</style>
 </head>
-<body>
+<body class="tod-night">
 
-    <div id="gameContainer">
-        <div id="status">Проверка гео-линка...</div>
-        <div id="menu">
-            <h2>Rocket Tennis</h2>
-            <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">UA ⇄ USA Стабильный коннект</p>
-            <button id="btnCreate">Создать матч (Хост)</button>
-            <button id="btnShare">Поделиться инвайтом</button>
-            <div id="joinSection" style="display: none;">
-                <p style="font-size: 13px; margin-bottom: 8px; color: #34c759; font-weight: bold;">Вас пригласили по линку!</p>
-                <button id="btnJoin" style="background: #34c759; margin: 0;">Вступить в бой</button>
-            </div>
-        </div>
-        <canvas id="gameCanvas"></canvas>
+<canvas id="stars"></canvas>
+<div class="lightning-flash" id="lightningFlash"></div>
+<div class="clouds-container" id="cloudsContainer">
+  <div class="cloud cloud1" id="cloudEl1"></div>
+  <div class="cloud cloud2" id="cloudEl2"></div>
+  <div class="cloud cloud3" id="cloudEl3"></div>
+</div>
+<canvas id="weatherCanvas"></canvas>
+<canvas id="steamCanvas"></canvas>
+<div class="overlay" id="envOverlay"></div>
+
+<!-- Настройки -->
+<div id="settingsModal" class="modal">
+  <div class="modal-content">
+    <h2 style="color: #ffb400; margin: 0 0 18px 0; font-size: 20px;" id="settingsTitle">Settings</h2>
+    
+    <button class="help-open-btn" id="openHelpFromSettings">
+      <span>❓</span> <span id="helpBtnLabel">Help / Guide</span>
+    </button>
+
+    <!-- Выпадающее меню: Время суток -->
+    <div class="settings-group">
+      <label id="lblTimeOfDay">Time of Day</label>
+      <select id="timeOfDaySelect" class="settings-select">
+        <option value="morning">🌅 Morning</option>
+        <option value="noon">☀️ Noon</option>
+        <option value="evening">🌆 Evening</option>
+        <option value="night" selected>🌙 Night</option>
+        <option value="full_cycle">🔄 Full 24h Cycle (120s)</option>
+      </select>
     </div>
 
-    <div id="consoleContainer">
-        <div id="consoleHeader">
-            <span>DEV_CONSOLE v2.0 (LIVE TRAFFIC)</span>
-            <div class="console-buttons">
-                <button class="c-btn" id="btnClearLog">Очистить</button>
-                <button class="c-btn" id="btnCopyLog" style="background: #007aff;">Копировать</button>
-            </div>
-        </div>
-        <div id="consoleLog"></div>
+    <!-- Выпадающее меню: Погода -->
+    <div class="settings-group">
+      <label id="lblWeather">Weather</label>
+      <select id="weatherSelect" class="settings-select">
+        <option value="clear" selected>☀️ Clear</option>
+        <option value="cloudy">☁️ Clouds + Rain</option>
+        <option value="thunder">🌩️ Thunderstorm</option>
+        <option value="random">🔀 Random Weather (120s)</option>
+      </select>
     </div>
 
-    <script src="multiplayer.js"></script>
-    <script src="game.js"></script>
+    <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 18px 0;">
+
+    <div class="settings-group">
+      <label id="lblFxStyle">Effect Style</label>
+      <select id="fxStyleSelect" class="settings-select">
+        <option value="steam">💨 Steam (Color)</option>
+        <option value="rain">💧 Rain Drops</option>
+        <option value="snow">❄️ Snowflakes</option>
+        <option value="comets">☄️ Comets & Asteroids</option>
+        <option value="neondust">✨ Neon Dust</option>
+        <option value="aura">🌀 Pulsing Aura</option>
+        <option value="random">🔀 Random Effect</option>
+      </select>
+    </div>
+
+    <div class="settings-group" id="randomIntervalGroup" style="display: none;">
+      <label id="lblFxRandomInterval">Random Change Interval</label>
+      <div class="range-container">
+        <input type="range" id="fxRandomIntervalRange" class="settings-range" min="3" max="30" step="1" value="14">
+        <span class="range-value" id="valFxRandomInterval">14s</span>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <label id="lblFxOpacity">Opacity / Glow</label>
+      <div class="range-container">
+        <input type="range" id="fxOpacityRange" class="settings-range" min="0.1" max="1" step="0.05" value="0.7">
+        <span class="range-value" id="valFxOpacity">70%</span>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <label id="lblFxSpeed">Effect Speed</label>
+      <div class="range-container">
+        <input type="range" id="fxSpeedRange" class="settings-range" min="0.2" max="2.5" step="0.1" value="0.3">
+        <span class="range-value" id="valFxSpeed">0.3x</span>
+      </div>
+    </div>
+
+    <button class="modal-btn" id="closeSettings">OK</button>
+  </div>
+</div>
+
+<!-- Модальное окно выбора погоды (через 10 секунд) -->
+<div id="weatherChoiceModal" class="modal">
+  <div class="modal-content" style="text-align: center;">
+    <h2 style="color: #ffb400; margin: 0 0 15px 0; font-size: 20px;" id="weatherChoiceTitle">Select Weather</h2>
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+      <button class="weather-option-btn" onclick="selectWeatherMode('clear')">
+        <span class="icon">☀️</span> <span id="btnWClear">Clear sky</span>
+      </button>
+      <button class="weather-option-btn" onclick="selectWeatherMode('cloudy')">
+        <span class="icon">🌧️</span> <span id="btnWClouds">Clouds & Rain</span>
+      </button>
+      <button class="weather-option-btn" onclick="selectWeatherMode('thunder')">
+        <span class="icon">🌩️</span> <span id="btnWThunder">Thunderstorm</span>
+      </button>
+      <button class="weather-option-btn" onclick="selectWeatherMode('random')">
+        <span class="icon">🎲</span> <span id="btnWRandom">Random</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Новое уведомление: Случайные эффекты -->
+<div id="fxPromoModal" class="modal">
+  <div class="modal-content" style="text-align: center;">
+    <h2 style="color: #ffb400; margin: 0 0 10px 0; font-size: 20px;" id="fxPromoTitle">New Feature: Effects</h2>
+    <p style="font-size: 14px; color: #ddd; margin-bottom: 20px; line-height: 1.4;" id="fxPromoDesc">Click Yes to activate automatic switching of visual effects.</p>
+    <button class="modal-btn" id="fxPromoEnableBtn" style="background: #8a2be2; color: white; margin-top: 5px;">Yes, activate all effects</button>
+    <button class="modal-btn" id="fxPromoKeepBtn" style="background: rgba(255,255,255,0.1); color: white; margin-top: 10px; padding: 12px;">Keep current effect</button>
+    <p style="font-size: 11px; color: #888; margin-top: 15px; margin-bottom: 0;" id="fxPromoPs">P.S. You can change this later in Settings.</p>
+  </div>
+</div>
+
+<div id="idleModal" class="modal">
+  <div class="modal-content" style="text-align: center;">
+    <h2 style="color: #ffb400; margin: 0 0 10px 0; font-size: 22px;" id="idleTitle">Start playing?</h2>
+    <p style="font-size: 14px; color: #ccc; margin-bottom: 20px;" id="idleDesc">Would you like to start the ASMR session?</p>
+    <button class="modal-btn" id="idlePlayBtn" style="margin-top: 5px;">▶ PLAY</button>
+    <button class="modal-btn" id="idleCloseBtn" style="background: rgba(255,255,255,0.1); color: white; margin-top: 10px; padding: 12px;">Close</button>
+    <button class="modal-btn" id="idleDisableBtn" style="background: transparent; color: #666; border: 1px dashed rgba(255,255,255,0.2); margin-top: 10px; padding: 8px; font-size: 12px;">Don't show again</button>
+  </div>
+</div>
+
+<div id="unlockModal" class="modal">
+  <div class="modal-content">
+    <h3 style="color: #ffb400; margin: 0 0 10px 0; font-size: 20px;" id="unlockTitle">Unlock Sound</h3>
+    <p style="font-size: 13px; color: #ccc; margin: 0;" id="unlockDesc">Unlock this trigger!</p>
+    <button class="modal-btn" id="unlockTriggerBtn" style="background: #8a2be2; color: white; margin-top: 10px;">🔓 Unlock Sound</button>
+    <button class="modal-btn" id="cancelUnlock" style="background: rgba(255,255,255,0.1); color: white; margin-top: 10px; padding: 12px;">Close</button>
+  </div>
+</div>
+
+<div id="welcomeModal" class="modal">
+  <div class="modal-content">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 style="color: #ffb400; margin: 0; font-size: 20px;">BUCKET ASMR</h2>
+        <button class="lang-btn-ui lang-switcher-btn" style="scale: 0.8;">EN</button>
+    </div>
+    <div class="modal-tabs">
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-features')" id="tabTitleFeatures">Functions</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-guide')" id="tabTitleGuide">Guide</button>
+    </div>
+    <div id="tab-features" class="help-section active">
+        <ul class="help-list" id="featuresList"></ul>
+    </div>
+    <div id="tab-guide" class="help-section">
+        <ul class="help-list" id="guideList"></ul>
+    </div>
+    <button class="modal-btn" id="closeWelcome">OK / START</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="title-bar" id="uiTitleBar">
+    <h1 id="title">BUCKET ASMR</h1>
+    <div class="live-counter">
+      <div class="live-dot"></div>
+      <span id="online-count">—</span> LIVE
+    </div>
+    <div id="settingsBtn" onclick="openSettings()">⚙ Settings</div>
+    <button id="langBtn" class="lang-btn-ui lang-switcher-btn">EN</button>
+  </div>
+
+<div class="controls" id="uiControls">
+  <button id="randomBtn">Play</button>
+  <div class="custom-select-container" id="linksSelectContainer">
+    <div class="select-trigger" id="linksTrigger" style="background: rgba(226, 43, 43, 0.4); border: 1px solid rgba(226, 43, 43, 0.3); min-width: 80px; color: #fff; font-weight: bold;">Links</div>
+    
+    <div class="custom-dropdown" id="linksOptions">
+      <button onclick="trackLinkClick('youtube', 'https://www.youtube.com/@BucketASMR')">YouTube</button>
+      <button onclick="trackLinkClick('tiktok', 'https://www.tiktok.com/@bucket_asmr')">TikTok</button>
+      <button onclick="trackLinkClick('instagram', 'https://www.instagram.com/bucket_asmr')">Instagram</button>
+    </div>
+  </div>
+	
+    <div class="custom-select-container">
+        <button id="favBtn" class="select-trigger" style="background: rgba(255, 180, 0, 0.2); border: 1px solid #ffb400; min-width: 60px;">⭐ Fav</button>
+        <div class="fav-dropdown" id="favDropdown"></div>
+    </div>
+
+    <button id="sleepBtn">Sleep: OFF</button>
+    <button id="repairBtn">REPAIR</button>
+    
+    <div class="custom-select-container">
+        <div class="select-trigger" id="speedTrigger">Medium</div>
+        <div class="custom-dropdown" id="speedDropdown">
+            <button onclick="setSpeed(22, 'fast')" id="spFast">Fast</button>
+            <button onclick="setSpeed(34, 'medium')" id="spMed">Medium</button>
+            <button onclick="setSpeed(52, 'slow')" id="spSlow">Slow</button>
+        </div>
+    </div>
+  </div>
+  
+  <div id="soundGrid" class="sound-grid"></div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAhDzJnUnVFQRlojHZaWp00IgrPsfbmkKo",
+  authDomain: "bucket-asmr-premium.firebaseapp.com",
+  projectId: "bucket-asmr-premium",
+  databaseURL: "https://bucket-asmr-premium-default-rtdb.firebaseio.com"
+};
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
+const database = firebase.database();
+const connectionsRef = database.ref('online_users');
+const viewsRef = database.ref('page_views');
+let presenceRef = null;
+let liveInterval = null;
+
+function logButtonClick(buttonId) {
+  try {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      const btnRef = firebase.database().ref('button_clicks/' + buttonId);
+      btnRef.transaction((currentValue) => (currentValue || 0) + 1);
+
+      const recentRef = firebase.database().ref('recent_clicks');
+      recentRef.push({ button_id: buttonId, timestamp: Date.now() });
+    }
+  } catch (error) {
+    console.error("Firebase tracking error:", error);
+  }
+}
+
+function trackLinkClick(platform, url) {
+  logButtonClick('link_social_' + platform);
+  window.open(url, '_blank');
+  try {
+    const clickRef = firebase.database().ref('link_clicks/' + platform);
+    clickRef.transaction((currentValue) => (currentValue || 0) + 1);
+  } catch (error) {
+    console.error("Firebase tracking error:", error);
+  }
+}
+
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+  } catch (err) {}
+}
+
+updateConnections();
+requestWakeLock();
+
+const sounds = [
+  { "file": "purplebrush.mp3", "img": "purplebrush.png", "name": { "en": "Purple Brush", "pt": "Pincel Roxo", "ru": "Фиолетовая кисть", "uk": "Фіолетовий пензель" }, "color": "#9664ff", "locked": false },
+  { "file": "wax.mp3", "img": "wax.png", "name": { "en": "Wax", "pt": "Cera", "ru": "Воск", "uk": "Віск" }, "color": "#ffa500", "locked": false },
+  { "file": "choko.mp3", "img": "choko.png", "name": { "en": "Choco", "pt": "Chocolate", "ru": "Шоколад", "uk": "Шоколад" }, "color": "#8b4513", "locked": false },
+  { "file": "strawberry.mp3", "img": "strawberry.png", "name": { "en": "Strawberry", "pt": "Morango", "ru": "Клубника", "uk": "Полуниця" }, "color": "#ff69b4", "locked": false },
+  { "file": "oldphone.mp3", "img": "oldphone.png", "name": { "en": "Old Phone", "pt": "Telefone Antigo", "ru": "Телефон", "uk": "Телефон" }, "color": "#323232", "locked": false },
+  { "file": "carrot.mp3", "img": "carrot.png", "name": { "en": "Carrot", "pt": "Cenoura", "ru": "Морковь", "uk": "Морква" }, "color": "#ff8c00", "locked": false },
+  { "file": "pinksoftbrush.mp3", "img": "pinksoftbrush.png", "name": { "en": "Soft Brush", "pt": "Pincel Macio", "ru": "Мягкая кисть", "uk": "М’який пензель" }, "color": "#ffb6c1", "locked": false },
+  { "file": "greybrush.mp3", "img": "greybrush.png", "name": { "en": "Grey Brush", "pt": "Pincel Cinza", "ru": "Серая кисть", "uk": "Сірий пензель" }, "color": "#8c8c8c", "locked": false },
+  { "file": "wood.mp3", "img": "wood.png", "name": { "en": "Wood", "pt": "Madeira", "ru": "Дерево", "uk": "Дерево" }, "color": "#ffff00", "locked": false },
+  { "file": "wax.mp3", "img": "wax.png", "name": { "en": "Wax", "pt": "Cera", "ru": "Воск", "uk": "Віск" }, "color": "#ffa500", "locked": false },
+  { "file": "carrot.mp3", "img": "carrot.png", "name": { "en": "Carrot", "pt": "Cenoura", "ru": "Морковь", "uk": "Морква" }, "color": "#ff8c00", "locked": false },
+  { "file": "purplebrush.mp3", "img": "purplebrush.png", "name": { "en": "Purple Brush", "pt": "Pincel Roxo", "ru": "Фиолетовая кисть", "uk": "Фіолетовий пензель" }, "color": "#9664ff", "locked": false }
+];
+
+const uiTL = {
+  en: { 
+    code: "EN", customBtn: "⚙ Settings", title: "BUCKET ASMR", play: "Play", pause: "Pause", repair: "REPAIR", sleep: "Sleep", tabFeatures: "Functions", tabGuide: "Guide", 
+    features: [
+      "<span>✦</span> New visual effects, weather and day-and-night cycle added to the background.", 
+      "<span>✦</span> <b>Stay Awake:</b> Screen won't turn off automatically.", 
+      "<span>✦</span> <b>Mixer:</b> Play multiple sounds at the same time.", 
+      "<span>✦</span> <b>Not Working?:</b> Turn off Silent Mode."
+    ], 
+    guide: [
+      "<b>1. Manual:</b> Tap any sound icon to start/stop audio mix.", 
+      "<b>2. Auto:</b> Press <b>PLAY</b> for random automatic switching.", 
+      "<b>3. Favorites:</b> Use <b>⭐ Fav</b> to select specific triggers for auto-play."
+    ], 
+    speeds: { slow: "Slow", medium: "Medium", fast: "Fast" }, 
+    unlockTitle: "Unlock Trigger", unlockDesc: "Unlock this trigger!", 
+    unlockBtn: "🔓 Unlock Sound", closeBtn: "Close", idleTitle: "Start playing?", idleDesc: "Would you like to start the ASMR session?", idleDisable: "Don't show again",
+    settingsTitle: "Settings", helpBtnLabel: "Help / Guide", lblFxStyle: "Effect Style", lblFxOpacity: "Opacity / Glow", lblFxSpeed: "Effect Speed", lblFxRandomInterval: "Random Change Interval",
+    lblTimeOfDay: "Time of Day", lblWeather: "Weather",
+    todNames: { morning: "🌅 Morning", noon: "☀️ Noon", evening: "🌆 Evening", night: "🌙 Night", full_cycle: "🔄 Full 24h Cycle (120s)" },
+    weatherNames: { clear: "☀️ Clear", cloudy: "☁️ Clouds + Rain", thunder: "🌩️ Thunderstorm", random: "🔀 Random Weather (120s)" },
+    fxNames: { steam: "💨 Steam (Color)", rain: "💧 Rain Drops", snow: "❄️ Snowflakes", comets: "☄️ Comets & Asteroids", neondust: "✨ Neon Dust", aura: "🌀 Pulsing Aura", random: "🔀 Random Effect" },
+    fxPromoTitle: "New Feature: Effects",
+    fxPromoDesc: "Click Yes to activate automatic switching of visual effects.",
+    fxPromoEnable: "Yes, activate all effects",
+    fxPromoKeep: "Keep current effect",
+    fxPromoPs: "P.S. You can change this later in Settings.",
+    weatherChoiceTitle: "Select Weather",
+    wClear: "Clear sky", wClouds: "Clouds & Rain", wThunder: "Thunderstorm", wRandom: "Random"
+  },
+  pt: { 
+    code: "PT", customBtn: "⚙ Personalizar", title: "BALDE ASMR", play: "Tocar", pause: "Pausa", repair: "REPARAR", sleep: "Dormir", tabFeatures: "Funções", tabGuide: "Guia", 
+    features: [
+      "<span>✦</span> Novos efeitos visuais, clima e ciclo dia/noite adicionados ao fundo.", 
+      "<span>✦</span> <b>Sempre Ativo:</b> A tela não apaga durante o uso.", 
+      "<span>✦</span> <b>Mixer:</b> Toque vários sons ao mesmo tempo.", 
+      "<span>✦</span> <b>Não funcionou?:</b> Desative o modo silencioso."
+    ], 
+    guide: [
+      "<b>1. Manual:</b> Clique nos ícones para iniciar/parar sons.", 
+      "<b>2. Auto:</b> Pressione <b>Tocar</b> para troca aleatória.", 
+      "<b>3. Favoritos:</b> Use <b>⭐ Fav</b> para escolher sons específicos no modo auto."
+    ], 
+    speeds: { slow: "Lento", medium: "Médio", fast: "Rápido" }, 
+    unlockTitle: "Desbloquear Som", unlockDesc: "Desbloqueie este som!", 
+    unlockBtn: "🔓 Desbloquear Som", closeBtn: "Fechar", idleTitle: "Começar a tocar?", idleDesc: "Você está inativo. Gostaria de iniciar a sessão de ASMR?", idleDisable: "Não mostrar novamente",
+    settingsTitle: "Configurações", helpBtnLabel: "Ajuda / Guia", lblFxStyle: "Estilo do Efeito", lblFxOpacity: "Opacidade / Brilho", lblFxSpeed: "Velocidade do Efeito", lblFxRandomInterval: "Intervalo de Troca Aleatória",
+    lblTimeOfDay: "Hora do Dia", lblWeather: "Clima",
+    todNames: { morning: "🌅 Manhã", noon: "☀️ Meio-dia", evening: "🌆 Tarde / Noite", night: "🌙 Noite", full_cycle: "🔄 Ciclo de 24h (120s)" },
+    weatherNames: { clear: "☀️ Limpo", cloudy: "☁️ Nuvens + Chuva", thunder: "🌩️ Tempestade", random: "🔀 Clima Aleatório (120s)" },
+    fxNames: { steam: "💨 Vapor (Colorido)", rain: "💧 Gotas de Chuva", snow: "❄️ Flocos de Neve", comets: "☄️ Cometas e Asteroides", neondust: "✨ Poeira Neon", aura: "🌀 Aura Pulsante", random: "🔀 Efeito Aleatório" },
+    fxPromoTitle: "Nova Função: Efeitos",
+    fxPromoDesc: "Clique em Sim para ativar a troca automática de efeitos visuais.",
+    fxPromoEnable: "Sim, ativar todos os efeitos",
+    fxPromoKeep: "Manter efeito atual",
+    fxPromoPs: "P.S. Você pode alterar isso mais tarde nas Configurações.",
+    weatherChoiceTitle: "Selecionar Clima",
+    wClear: "Céu limpo", wClouds: "Nuvens e Chuva", wThunder: "Tempestade", wRandom: "Aleatório"
+  },
+  uk: { 
+    code: "UK", customBtn: "⚙ Налаштування", title: "ВІДРО АСМР", play: "Грати", pause: "Пауза", repair: "ЛАГОДИТИ", sleep: "Сон", tabFeatures: "Функції", tabGuide: "Інструкція", 
+    features: [
+      "<span>✦</span> Додано нові візуальні ефекти, погоду та зміну дня і ночі на фон.", 
+      "<span>✦</span> <b>Без Сну:</b> Екран не згасає автоматично.", 
+      "<span>✦</span> <b>Міксер:</b> Грайте кілька звуків одночасно.", 
+      "<span>✦</span> <b>Не працює?:</b> Вимкніть беззвучний режим."
+    ], 
+    guide: [
+      "<b>1. Ручний:</b> Натискайте на будь-які плитки для міксу звуків.", 
+      "<b>2. Авто:</b> Кнопка <b>ГРАТИ</b> запускає випадковий режим.", 
+      "<b>3. Обране:</b> Використовуйте <b>⭐ Fav</b> для вибору тригерів у авто-режимі."
+    ], 
+    speeds: { slow: "Повільно", medium: "Середньо", fast: "Швидко" }, 
+    unlockTitle: "Відкрити звук", unlockDesc: "Розблокуйте цей тригер!", 
+    unlockBtn: "🔓 Розблокувати звук", closeBtn: "Закрити", idleTitle: "Запустити програвання?", idleDesc: "Ви нічого не натискали. Бажаєте увімкнути випадковий режим АСМР?", idleDisable: "Приховати нагадування",
+    settingsTitle: "Налаштування", helpBtnLabel: "Допомога / Інструкція", lblFxStyle: "Стиль ефекту", lblFxOpacity: "Прозорість / Сяйво", lblFxSpeed: "Швидкість ефекту", lblFxRandomInterval: "Інтервал зміни рандому",
+    lblTimeOfDay: "Час доби", lblWeather: "Погода",
+    todNames: { morning: "🌅 Ранок", noon: "☀️ Полдень", evening: "🌆 Вечір", night: "🌙 Ніч", full_cycle: "🔄 Повні добу (120с)" },
+    weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Хмари + Дощ", thunder: "🌩️ Гроза", random: "🔀 Рандомна погода (120с)" },
+    fxNames: { steam: "💨 Кольорова пара", rain: "💧 Краплі дощу", snow: "❄️ Сніжинки", comets: "☄️ Комети та астероїди", neondust: "✨ Магічні іскри", aura: "🌀 Пульсуюча аура", random: "🔀 Рандомний ефект" },
+    fxPromoTitle: "Нова функція ефекти.",
+    fxPromoDesc: "натисніть так щоб активувати автоматичну зміну ефектів",
+    fxPromoEnable: "так, активувати всі ефекти",
+    fxPromoKeep: "Залишити поточний ефект",
+    fxPromoPs: "PS: Ви зможете змінити це в розділі Налаштування.",
+    weatherChoiceTitle: "Оберіть погоду",
+    wClear: "Чисте небо", wClouds: "Хмари та Дощ", wThunder: "Гроза", wRandom: "Рандом"
+  },
+  ru: { 
+    code: "RU", customBtn: "⚙ Настройки", title: "ВЕДРО АСМР", play: "Играть", pause: "Пауза", repair: "ЧИНИТЬ", sleep: "Сон", tabFeatures: "Функции", tabGuide: "Инструкция", 
+    features: [
+      "<span>✦</span> Добавлены новые визуальные эффекты, погода и смена дня и ночи на фон.", 
+      "<span>✦</span> <b>Бодрость:</b> Экран не гаснет во время сеанса.", 
+      "<span>✦</span> <b>Микшер:</b> Запуск нескольких звуков одновременно.", 
+      "<span>✦</span> <b>Не работает?:</b> Отключите беззвучный режим."
+    ], 
+    guide: [
+      "<b>1. Ручной:</b> Нажимайте на любые плитки для микса звуков.", 
+      "<b>2. Авто:</b> Кнопка <b>ИГРАТЬ</b> включит случайный автоматический режим.", 
+      "<b>3. Избранное:</b> Используйте <b>⭐ Fav</b> для отбора звуков в авто-режиме."
+    ], 
+    speeds: { slow: "Медленно", medium: "Средне", fast: "Быстро" }, 
+    unlockTitle: "Открыть звук", unlockDesc: "Разблокируйте этот триггер!", 
+    unlockBtn: "🔓 Разблокировать звук", closeBtn: "Закрыть", idleTitle: "Запустить проигрывание?", idleDesc: "Вы ничего не нажимали. Хотите включить случайный режим АСМР?", idleDisable: "Скрыть напоминание",
+    settingsTitle: "Настройки", helpBtnLabel: "Помощь / Инструкция", lblFxStyle: "Стиль эффекта", lblFxOpacity: "Прозрачность / Свечение", lblFxSpeed: "Скорость эффекта", lblFxRandomInterval: "Интервал смены рандома",
+    lblTimeOfDay: "Время суток", lblWeather: "Погода",
+    todNames: { morning: "🌅 Утро", noon: "☀️ Полдень", evening: "🌆 Вечер", night: "🌙 Ночь", full_cycle: "🔄 Полные сутки (120 сек)" },
+    weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Тучи + Дождь", thunder: "🌩️ Гроза", random: "🔀 Рандомная погода (120 сек)" },
+    fxNames: { steam: "💨 Цветной пар", rain: "💧 Капли дождя", snow: "❄️ Снежинки", comets: "☄️ Кометы и астероиды", neondust: "✨ Магические искры", aura: "🌀 Пульсирующая аура", random: "🔀 Рандом" },
+    fxPromoTitle: "Новая функция эффекты.",
+    fxPromoDesc: "нажмите да что-бы активировать автоматическую смену эффектов",
+    fxPromoEnable: "да, активировать все эффекты",
+    fxPromoKeep: "Оставить текущий эффект",
+    fxPromoPs: "PS: Вы сможете изменить это в разделе Настройки.",
+    weatherChoiceTitle: "Выберите погоду",
+    wClear: "Чистое небо", wClouds: "Тучи и Дождь", wThunder: "Гроза", wRandom: "Рандом"
+  }
+};
+
+let audioElements = [], randomActive = false, sleepMode = false, langIdx = 0;
+let currentSpeedValue = 34, nextCycleTimeout = null;
+const langOrder = ['en', 'pt', 'uk', 'ru'];
+
+let steamParticles = [];
+let weatherParticles = []; // ЧАСТИЦЫ ПОГОДЫ (ДОЖДЬ/ГРОЗА)
+let lightningTimer = null;
+let pendingUnlockElement = null;
+let adTimerInterval = null;
+let steamHue = 270;
+
+// Логика промо-таймера эффектов
+let fxTimerStarted = false;
+let fxTimerId = null;
+
+// Логика таймера появления окна погоды (через 10 сек после нажатия)
+let weatherTimerStarted = false;
+let weatherTimerId = null;
+
+function triggerFirstAudioPlay() {
+  if (!fxTimerStarted) {
+    fxTimerStarted = true;
+    fxTimerId = setTimeout(() => {
+      if (fxConfig.style !== 'random') {
+        logButtonClick('ui_fx_promo_modal_shown');
+        document.getElementById('fxPromoModal').style.display = 'flex';
+      }
+    }, 20000);
+  }
+
+  if (!weatherTimerStarted) {
+    weatherTimerStarted = true;
+    weatherTimerId = setTimeout(() => {
+      logButtonClick('ui_weather_choice_modal_shown');
+      document.getElementById('weatherChoiceModal').style.display = 'flex';
+    }, 10000);
+  }
+}
+
+function selectWeatherMode(mode) {
+  logButtonClick('ui_weather_choice_select_' + mode);
+  envConfig.weather = mode;
+  document.getElementById('weatherSelect').value = mode;
+  applyEnvironmentSettings();
+  document.getElementById('weatherChoiceModal').style.display = 'none';
+  resetIdleTimer();
+}
+
+// Глобальные переменные эффектов
+let fxConfig = {
+  style: 'steam',
+  activeStyle: 'steam', // фактический визуальный эффект при режиме 'random'
+  opacity: 0.7,
+  speed: 0.3,
+  randomInterval: 14 // секунды
+};
+
+// Глобальные настройки Времени суток и Погоды
+let envConfig = {
+  timeOfDay: 'night', // 'morning', 'noon', 'evening', 'night', 'full_cycle'
+  weather: 'clear'      // 'clear', 'cloudy', 'thunder', 'random'
+};
+
+let activeWeatherState = 'clear'; // 'clear', 'cloudy', 'thunder' при рандоме
+let weatherStateStartTime = 0;
+let cycleAnimationReq = null;
+let cycleStartTime = null;
+
+let randomFxTimer = null;
+const availableEffects = ['steam', 'rain', 'snow', 'comets', 'neondust', 'aura'];
+
+function pickRandomEffect() {
+  const otherFx = availableEffects.filter(e => e !== fxConfig.activeStyle);
+  fxConfig.activeStyle = otherFx[Math.floor(Math.random() * otherFx.length)];
+}
+
+function startRandomFxLoop() {
+  stopRandomFxLoop();
+  pickRandomEffect();
+  randomFxTimer = setInterval(() => {
+    pickRandomEffect();
+  }, fxConfig.randomInterval * 1000);
+}
+
+function stopRandomFxLoop() {
+  if (randomFxTimer) {
+    clearInterval(randomFxTimer);
+    randomFxTimer = null;
+  }
+}
+
+let idleTimer = null;
+let isIdleSystemEnabled = true;
+
+const grid = document.getElementById('soundGrid');
+const favDropdown = document.getElementById('favDropdown');
+
+function loadAudio(el) {
+  if (!el.loaded && !el.locked) {
+    el.audio.src = `https://raw.githubusercontent.com/bucketasmr/sounds/main/${el.fileName}`;
+    el.audio.load();
+    el.loaded = true;
+    el.btn.classList.add('ready');
+    preloadImage(el);
+  }
+}
+
+function preloadImage(el) {
+  if (el.imgName && !el.locked) {
+    el.btn.style.backgroundImage = `url('https://raw.githubusercontent.com/bucketasmr/sounds/main/${el.imgName}')`;
+  }
+}
+
+sounds.forEach((s, idx) => {
+  const btn = document.createElement('button');
+  btn.className = 'sound-button';
+  
+  if (s.locked) {
+    btn.classList.add('locked');
+    btn.innerHTML = `<div class="lock-icon">🔒</div><span>${s.name['en']}</span>`;
+  } else {
+    btn.innerHTML = `<span>${s.name['en']}</span>`;
+  }
+  
+  grid.appendChild(btn);
+
+  const audio = new Audio();
+  audio.loop = true;
+  audio.crossOrigin = "anonymous";
+  audio.setAttribute('playsinline', '');
+  
+  const state = { 
+    audio, 
+    btn, 
+    active: false, 
+    muted: false, 
+    fileName: s.file, 
+    imgName: s.img || null, 
+    color: s.color, 
+    loaded: false, 
+    isFav: false, 
+    locked: s.locked,
+    fadeInterval: null 
+  };
+
+  btn.onclick = () => {
+    const cleanSoundName = state.fileName.replace('.mp3', '');
+    if (state.locked) {
+        logButtonClick('sound_locked_' + cleanSoundName);
+        openUnlockModal(state);
+    } else {
+        logButtonClick('sound_' + cleanSoundName);
+        loadAudio(state);
+        state.active ? fadeOut(state) : fadeIn(state);
+    }
+  };
+
+  audioElements.push(state);
+
+  const favItem = document.createElement('div');
+  favItem.className = 'fav-item';
+  favItem.innerHTML = `<input type="checkbox" id="check-${idx}"><label for="check-${idx}">${s.name['en']}</label>`;
+  favItem.onclick = (e) => {
+    e.stopPropagation();
+    if(state.locked) return;
+    const checkbox = favItem.querySelector('input');
+    if(e.target !== checkbox) checkbox.checked = !checkbox.checked;
+    state.isFav = checkbox.checked;
+    btn.classList.toggle('is-fav', state.isFav);
+  };
+  favDropdown.appendChild(favItem);
+});
+
+function openUnlockModal(el) {
+    if(adTimerInterval) clearInterval(adTimerInterval);
+    pendingUnlockElement = el;
+    const t = uiTL[langOrder[langIdx]];
+    
+    document.getElementById('unlockTitle').innerText = t.unlockTitle;
+    document.getElementById('unlockDesc').innerText = t.unlockDesc;
+    document.getElementById('unlockTriggerBtn').innerText = t.unlockBtn;
+    document.getElementById('cancelUnlock').innerText = t.closeBtn;
+    
+    document.getElementById('unlockTriggerBtn').disabled = false;
+    document.getElementById('unlockTriggerBtn').style.opacity = "1";
+    document.getElementById('unlockModal').style.display = 'flex';
+}
+
+document.getElementById('cancelUnlock').onclick = () => {
+    logButtonClick('ui_modal_unlock_close');
+    if(adTimerInterval) clearInterval(adTimerInterval);
+    document.getElementById('unlockModal').style.display = 'none';
+    pendingUnlockElement = null;
+    resetIdleTimer();
+};
+
+document.getElementById('unlockTriggerBtn').onclick = () => {
+    if (!pendingUnlockElement) return;
+    logButtonClick('link_unlock_trigger');
+    
+    document.getElementById('unlockTriggerBtn').disabled = true;
+    document.getElementById('unlockTriggerBtn').style.opacity = "0.3";
+    
+    let timeLeft = 10;
+    adTimerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(adTimerInterval);
+            if (pendingUnlockElement) {
+                pendingUnlockElement.locked = false;
+                pendingUnlockElement.btn.classList.remove('locked');
+                const lockIcon = pendingUnlockElement.btn.querySelector('.lock-icon');
+                if (lockIcon) lockIcon.remove();
+                
+                loadAudio(pendingUnlockElement);
+                document.getElementById('unlockModal').style.display = 'none';
+                pendingUnlockElement = null;
+                updateUI();
+                resetIdleTimer();
+            }
+        }
+    }, 1000);
+};
+
+function fadeIn(el) {
+  if(el.locked) return;
+  triggerFirstAudioPlay();
+  if(el.fadeInterval) clearInterval(el.fadeInterval);
+  el.active = true; el.btn.classList.add('active');
+  el.btn.style.backgroundColor = el.color + "44";
+  el.audio.volume = 0;
+  
+  el.audio.play().catch(e => {});
+
+  let v = 0;
+  el.fadeInterval = setInterval(() => {
+    if (v < 0.6 && !el.muted) { v += 0.05; el.audio.volume = Math.min(v, 0.6); } 
+    else { clearInterval(el.fadeInterval); el.fadeInterval = null; }
+  }, 50);
+}
+
+function fadeOut(el) {
+  if(el.fadeInterval) clearInterval(el.fadeInterval);
+  el.active = false; el.btn.classList.remove('active');
+  el.btn.style.backgroundColor = "";
+  
+  let v = el.audio.volume;
+  el.fadeInterval = setInterval(() => {
+    if (v > 0.05) { v -= 0.05; el.audio.volume = v; } 
+    else { el.audio.volume = 0; el.audio.pause(); clearInterval(el.fadeInterval); el.fadeInterval = null; }
+  }, 50);
+}
+
+function startRandomPlaying() {
+  triggerFirstAudioPlay();
+  randomActive = true;
+  const favs = audioElements.filter(el => el.isFav && !el.locked);
+  if(favs.length > 0) favs.forEach(el => loadAudio(el));
+  runRandom();
+  updateUI();
+}
+
+function stopRandomPlaying() {
+  randomActive = false;
+  clearTimeout(nextCycleTimeout);
+  audioElements.forEach(el => {
+      el.active = false; 
+      el.btn.classList.remove('active'); 
+      el.btn.style.backgroundColor = "";
+      if(el.fadeInterval) clearInterval(el.fadeInterval); 
+      el.audio.pause();
+      el.audio.volume = 0;
+  });
+  updateUI();
+}
+
+document.getElementById('randomBtn').onclick = () => {
+  logButtonClick('ui_random_play');
+  if (!randomActive) { 
+    startRandomPlaying();
+  } else { 
+    stopRandomPlaying();
+  }
+};
+
+function runRandom() {
+  if (!randomActive) return;
+
+  let pool = audioElements.filter(el => el.isFav && !el.muted && !el.locked);
+  if (pool.length === 0) {
+      pool = audioElements.filter(el => !el.muted && !el.locked);
+  }
+
+  const unloadedInPool = pool.filter(el => !el.loaded);
+  if (unloadedInPool.length > 0) {
+      unloadedInPool.forEach(el => loadAudio(el));
+      nextCycleTimeout = setTimeout(runRandom, 1500);
+      return;
+  }
+
+  const count = Math.floor(Math.random() * 2) + 1;
+  const toPlay = pool.sort(() => 0.5 - Math.random()).slice(0, count);
+  
+  audioElements.forEach(el => {
+    if (toPlay.includes(el)) { 
+        if(!el.active) fadeIn(el); 
+    } else { 
+        if(el.active) fadeOut(el); 
+    }
+  });
+
+  nextCycleTimeout = setTimeout(runRandom, currentSpeedValue * 1000);
+}
+
+function updateUI() {
+  const t = uiTL[langOrder[langIdx]];
+  document.getElementById('title').innerText = t.title;
+  document.getElementById('settingsBtn').innerText = t.customBtn;
+  document.querySelectorAll('.lang-switcher-btn').forEach(btn => btn.innerText = t.code);
+  document.getElementById('randomBtn').innerText = randomActive ? t.pause : t.play;
+  document.getElementById('repairBtn').innerText = t.repair;
+  document.getElementById('sleepBtn').innerText = `${t.sleep}: ${sleepMode ? 'ON' : 'OFF'}`;
+  let speedKey = (currentSpeedValue === 22) ? 'fast' : (currentSpeedValue === 52) ? 'slow' : 'medium';
+  document.getElementById('speedTrigger').innerText = t.speeds[speedKey];
+  document.getElementById('spFast').innerText = t.speeds.fast;
+  document.getElementById('spMed').innerText = t.speeds.medium;
+  document.getElementById('spSlow').innerText = t.speeds.slow;
+  document.getElementById('tabTitleFeatures').innerText = t.tabFeatures;
+  document.getElementById('tabTitleGuide').innerText = t.tabGuide;
+  document.getElementById('featuresList').innerHTML = t.features.map(item => `<li>${item}</li>`).join('');
+  document.getElementById('guideList').innerHTML = t.guide.map(item => `<li>${item}</li>`).join('');
+  
+  document.getElementById('idleTitle').innerText = t.idleTitle;
+  document.getElementById('idleDesc').innerText = t.idleDesc;
+  document.getElementById('idleDisableBtn').innerText = t.idleDisable;
+
+  document.getElementById('settingsTitle').innerText = t.settingsTitle;
+  document.getElementById('helpBtnLabel').innerText = t.helpBtnLabel;
+  document.getElementById('lblFxStyle').innerText = t.lblFxStyle;
+  document.getElementById('lblFxOpacity').innerText = t.lblFxOpacity;
+  document.getElementById('lblFxSpeed').innerText = t.lblFxSpeed;
+  document.getElementById('lblFxRandomInterval').innerText = t.lblFxRandomInterval;
+  document.getElementById('lblTimeOfDay').innerText = t.lblTimeOfDay;
+  document.getElementById('lblWeather').innerText = t.lblWeather;
+
+  document.getElementById('fxPromoTitle').innerText = t.fxPromoTitle;
+  document.getElementById('fxPromoDesc').innerText = t.fxPromoDesc;
+  document.getElementById('fxPromoEnableBtn').innerText = t.fxPromoEnable;
+  document.getElementById('fxPromoKeepBtn').innerText = t.fxPromoKeep;
+  document.getElementById('fxPromoPs').innerText = t.fxPromoPs;
+
+  document.getElementById('weatherChoiceTitle').innerText = t.weatherChoiceTitle;
+  document.getElementById('btnWClear').innerText = t.wClear;
+  document.getElementById('btnWClouds').innerText = t.wClouds;
+  document.getElementById('btnWThunder').innerText = t.wThunder;
+  document.getElementById('btnWRandom').innerText = t.wRandom;
+
+  const selectFx = document.getElementById('fxStyleSelect');
+  Array.from(selectFx.options).forEach(opt => {
+    if (t.fxNames[opt.value]) opt.text = t.fxNames[opt.value];
+  });
+
+  const selectTod = document.getElementById('timeOfDaySelect');
+  Array.from(selectTod.options).forEach(opt => {
+    if (t.todNames[opt.value]) opt.text = t.todNames[opt.value];
+  });
+
+  const selectWeather = document.getElementById('weatherSelect');
+  Array.from(selectWeather.options).forEach(opt => {
+    if (t.weatherNames[opt.value]) opt.text = t.weatherNames[opt.value];
+  });
+
+  if (!pendingUnlockElement || !document.getElementById('unlockTriggerBtn').disabled) {
+      document.getElementById('unlockTitle').innerText = t.unlockTitle;
+      document.getElementById('unlockDesc').innerText = t.unlockDesc;
+      document.getElementById('unlockTriggerBtn').innerText = t.unlockBtn;
+      document.getElementById('cancelUnlock').innerText = t.closeBtn;
+  }
+
+  audioElements.forEach((el, i) => {
+      const name = sounds[i].name[langOrder[langIdx]];
+      el.btn.querySelector('span').innerText = name;
+      favDropdown.querySelectorAll('label')[i].innerText = name;
+      
+      const checkInput = favDropdown.querySelectorAll('input')[i];
+      if (el.locked) {
+          checkInput.disabled = true;
+          checkInput.parentElement.style.opacity = "0.4";
+      } else {
+          checkInput.disabled = false;
+          checkInput.parentElement.style.opacity = "1";
+      }
+  });
+}
+
+// Управление временем суток и погодой
+function applyEnvironmentSettings() {
+  const body = document.body;
+  const stars = document.getElementById('stars');
+  const overlay = document.getElementById('envOverlay');
+  const clouds = document.getElementById('cloudsContainer');
+
+  if (cycleAnimationReq) {
+    cancelAnimationFrame(cycleAnimationReq);
+    cycleAnimationReq = null;
+  }
+
+  body.className = '';
+
+  if (envConfig.timeOfDay === 'morning') {
+    body.classList.add('tod-morning');
+    stars.style.opacity = '0.2';
+    overlay.style.background = 'rgba(255, 150, 100, 0.15)';
+  } else if (envConfig.timeOfDay === 'noon') {
+    body.classList.add('tod-noon');
+    stars.style.opacity = '0';
+    overlay.style.background = 'rgba(255, 255, 255, 0.05)';
+  } else if (envConfig.timeOfDay === 'evening') {
+    body.classList.add('tod-evening');
+    stars.style.opacity = '0.4';
+    overlay.style.background = 'rgba(200, 50, 50, 0.2)';
+  } else if (envConfig.timeOfDay === 'night') {
+    body.classList.add('tod-night');
+    stars.style.opacity = '1';
+    overlay.style.background = 'rgba(0, 0, 0, 0.4)';
+  } else if (envConfig.timeOfDay === 'full_cycle') {
+    cycleStartTime = performance.now();
+    runFullCycleAnimation();
+  }
+
+  if (envConfig.timeOfDay !== 'full_cycle') {
+    if (envConfig.weather === 'cloudy' || envConfig.weather === 'thunder') {
+      clouds.classList.add('visible');
+    } else if (envConfig.weather === 'clear') {
+      clouds.classList.remove('visible');
+    }
+  }
+
+  if (envConfig.weather !== 'random') {
+    activeWeatherState = envConfig.weather;
+  }
+}
+
+// Эффект импульсивных вспышек молнии
+function triggerLightning() {
+  if (sleepMode) return;
+  const flash = document.getElementById('lightningFlash');
+  
+  // Серия из нескольких коротких импульсов
+  const pulses = Math.floor(Math.random() * 3) + 2;
+  let currentPulse = 0;
+
+  function doPulse() {
+    if (currentPulse >= pulses) return;
+    
+    flash.style.opacity = (Math.random() * 0.5 + 0.5).toString();
+    setTimeout(() => {
+      flash.style.opacity = '0.05'; // эффекты послесвечения
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        currentPulse++;
+        if (currentPulse < pulses) {
+          setTimeout(doPulse, Math.random() * 100 + 40);
+        }
+      }, 60);
+    }, 40);
+  }
+
+  doPulse();
+}
+
+function scheduleNextLightning() {
+  if (lightningTimer) clearTimeout(lightningTimer);
+  const nextDelay = Math.random() * 7000 + 3000; // каждые 3-10 секунд
+  lightningTimer = setTimeout(() => {
+    if ((activeWeatherState === 'thunder' || envConfig.weather === 'thunder') && !sleepMode) {
+      triggerLightning();
+    }
+    scheduleNextLightning();
+  }, nextDelay);
+}
+scheduleNextLightning();
+
+// 120-секундная плавная реалистичная анимация суток и динамической погоды
+function runFullCycleAnimation() {
+  const duration = 120000; // 120 секунд полный круг
+  const clouds = document.getElementById('cloudsContainer');
+  const stars = document.getElementById('stars');
+  const overlay = document.getElementById('envOverlay');
+
+  const keyframes = [
+    { pct: 0.00, color1: [5, 5, 5], color2: [10, 10, 31], stars: 1.0, overlay: [0, 0, 0, 0.4] },       // Ночь
+    { pct: 0.25, color1: [255, 154, 158], color2: [161, 196, 253], stars: 0.2, overlay: [255, 150, 100, 0.15] },       // Утро
+    { pct: 0.50, color1: [79, 172, 254], color2: [0, 242, 254], stars: 0.0, overlay: [255, 255, 255, 0.05] },         // Полдень
+    { pct: 0.75, color1: [44, 62, 80], color2: [255, 130, 53], stars: 0.4, overlay: [200, 50, 50, 0.2] },              // Вечер
+    { pct: 1.00, color1: [5, 5, 5], color2: [10, 10, 31], stars: 1.0, overlay: [0, 0, 0, 0.4] }        // Возврат в Ночь
+  ];
+
+  function interpolate(start, end, factor) {
+    return Math.round(start + (end - start) * factor);
+  }
+
+  function step(now) {
+    if (envConfig.timeOfDay !== 'full_cycle') return;
+
+    let elapsed = (now - cycleStartTime) % duration;
+    let progress = elapsed / duration;
+
+    let kStart = keyframes[0], kEnd = keyframes[1];
+    for (let i = 0; i < keyframes.length - 1; i++) {
+      if (progress >= keyframes[i].pct && progress <= keyframes[i+1].pct) {
+        kStart = keyframes[i];
+        kEnd = keyframes[i+1];
+        break;
+      }
+    }
+
+    let factor = (progress - kStart.pct) / (kEnd.pct - kStart.pct);
+
+    let r1 = interpolate(kStart.color1[0], kEnd.color1[0], factor);
+    let g1 = interpolate(kStart.color1[1], kEnd.color1[1], factor);
+    let b1 = interpolate(kStart.color1[2], kEnd.color1[2], factor);
+
+    let r2 = interpolate(kStart.color2[0], kEnd.color2[0], factor);
+    let g2 = interpolate(kStart.color2[1], kEnd.color2[1], factor);
+    let b2 = interpolate(kStart.color2[2], kEnd.color2[2], factor);
+
+    document.body.style.background = `linear-gradient(180deg, rgb(${r1},${g1},${b1}) 0%, rgb(${r2},${g2},${b2}) 100%)`;
+
+    let starAlpha = kStart.stars + (kEnd.stars - kStart.stars) * factor;
+    stars.style.opacity = starAlpha;
+
+    let oR = interpolate(kStart.overlay[0], kEnd.overlay[0], factor);
+    let oG = interpolate(kStart.overlay[1], kEnd.overlay[1], factor);
+    let oB = interpolate(kStart.overlay[2], kEnd.overlay[2], factor);
+    let oA = kStart.overlay[3] + (kEnd.overlay[3] - kStart.overlay[3]) * factor;
+    overlay.style.background = `rgba(${oR}, ${oG}, ${oB}, ${oA})`;
+
+    // Динамическая логика рандомной погоды внутри цикла
+    if (envConfig.weather === 'random') {
+      const weatherCycle = Math.floor((progress * 120) / 20) % 4; 
+      // 0: clear, 1: cloudy, 2: thunder, 3: cloudy
+      const states = ['clear', 'cloudy', 'thunder', 'cloudy'];
+      activeWeatherState = states[weatherCycle];
+
+      if (activeWeatherState === 'clear') {
+        clouds.classList.remove('visible');
+      } else {
+        clouds.classList.add('visible');
+      }
+    }
+
+    cycleAnimationReq = requestAnimationFrame(step);
+  }
+
+  cycleAnimationReq = requestAnimationFrame(step);
+}
+
+document.getElementById('timeOfDaySelect').onchange = (e) => {
+  envConfig.timeOfDay = e.target.value;
+  logButtonClick('ui_tod_' + envConfig.timeOfDay);
+  applyEnvironmentSettings();
+};
+
+document.getElementById('weatherSelect').onchange = (e) => {
+  envConfig.weather = e.target.value;
+  logButtonClick('ui_weather_' + envConfig.weather);
+  applyEnvironmentSettings();
+};
+
+// Обработчики кнопок промо-окна эффектов
+document.getElementById('fxPromoEnableBtn').onclick = () => {
+  logButtonClick('ui_fx_promo_enable');
+  fxConfig.style = 'random';
+  fxConfig.randomInterval = 14;
+  document.getElementById('fxStyleSelect').value = 'random';
+  document.getElementById('fxRandomIntervalRange').value = 14;
+  document.getElementById('valFxRandomInterval').innerText = '14s';
+  document.getElementById('randomIntervalGroup').style.display = 'block';
+  startRandomFxLoop();
+  document.getElementById('fxPromoModal').style.display = 'none';
+  resetIdleTimer();
+};
+
+document.getElementById('fxPromoKeepBtn').onclick = () => {
+  logButtonClick('ui_fx_promo_keep');
+  document.getElementById('fxPromoModal').style.display = 'none';
+  resetIdleTimer();
+};
+
+function updateConnections() {
+    if (typeof firebase === 'undefined' || !firebase.database) return;
+    
+    if (presenceRef) {
+        try { presenceRef.remove(); } catch(e) {}
+        presenceRef = null;
+    }
+
+    presenceRef = connectionsRef.push(true);
+    presenceRef.onDisconnect().remove();
+
+    connectionsRef.off();
+
+    connectionsRef.on('value', (snap) => {
+        const count = snap.numChildren() || 1;
+        document.getElementById('online-count').innerText = count;
+    });
+
+    if (!sessionStorage.getItem('page_view_counted')) {
+        viewsRef.set(firebase.database.ServerValue.increment(1))
+            .then(() => {
+                sessionStorage.setItem('page_view_counted', 'true');
+            })
+            .catch(err => console.error("Ошибка просмотра:", err));
+    }
+}
+
+function setSpeed(v, label) {
+    logButtonClick('ui_speed_' + label);
+    currentSpeedValue = v;
+    document.getElementById('speedDropdown').classList.remove('open');
+    updateUI();
+    if(randomActive) { clearTimeout(nextCycleTimeout); runRandom(); }
+}
+
+document.getElementById('speedTrigger').onclick = (e) => { e.stopPropagation(); favDropdown.classList.remove('open'); document.getElementById('speedDropdown').classList.toggle('open'); };
+document.getElementById('favBtn').onclick = (e) => { 
+    e.stopPropagation(); 
+    logButtonClick('ui_fav_menu');
+    document.getElementById('speedDropdown').classList.remove('open'); 
+    favDropdown.classList.toggle('open'); 
+};
+document.addEventListener('click', () => { document.getElementById('speedDropdown').classList.remove('open'); favDropdown.classList.remove('open'); });
+
+document.getElementById('repairBtn').onclick = () => {
+    logButtonClick('ui_repair');
+    location.reload();
+};
+
+document.getElementById('closeWelcome').onclick = () => { 
+    logButtonClick('ui_welcome_close');
+    document.getElementById('welcomeModal').style.display = 'none'; 
+    resetIdleTimer(); 
+};
+
+document.querySelectorAll('.lang-switcher-btn').forEach(btn => { 
+    btn.onclick = (e) => { 
+        e.stopPropagation(); 
+        langIdx = (langIdx + 1) % 4; 
+        logButtonClick('ui_lang_change_' + langOrder[langIdx]);
+        updateUI(); 
+    }; 
+});
+
+document.getElementById('sleepBtn').onclick = () => {
+    logButtonClick('ui_sleep_mode');
+    sleepMode = !sleepMode;
+    document.body.style.background = sleepMode ? "#000" : "";
+    document.getElementById('stars').style.opacity = sleepMode ? "0" : "1";
+    document.getElementById('cloudsContainer').style.opacity = sleepMode ? "0" : "";
+    document.getElementById('sleepBtn').classList.toggle('active', sleepMode);
+    document.getElementById('soundGrid').classList.toggle('hidden', sleepMode);
+    if (sleepMode) {
+      if(presenceRef) presenceRef.remove();
+      presenceRef = null;
+      if(liveInterval) clearInterval(liveInterval);
+      firebase.database().goOffline();
+      document.getElementById('online-count').innerText = "ECO";
+      steamParticles = [];
+      weatherParticles = [];
+    } else {
+      firebase.database().goOnline();
+      updateConnections();
+      applyEnvironmentSettings();
+    }
+    updateUI();
+};
+
+function resetIdleTimer() {
+  if (!isIdleSystemEnabled || randomActive || sleepMode || document.getElementById('unlockModal').style.display === 'flex' || document.getElementById('settingsModal').style.display === 'flex' || document.getElementById('fxPromoModal').style.display === 'flex' || document.getElementById('weatherChoiceModal').style.display === 'flex') {
+    clearTimeout(idleTimer);
+    return;
+  }
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(showIdleModal, 120000);
+}
+
+function showIdleModal() {
+  if (document.getElementById('welcomeModal').style.display !== 'flex' && !randomActive && document.getElementById('unlockModal').style.display !== 'flex' && document.getElementById('settingsModal').style.display !== 'flex' && document.getElementById('fxPromoModal').style.display !== 'flex' && document.getElementById('weatherChoiceModal').style.display !== 'flex') {
+    logButtonClick('ui_idle_modal_shown');
+    document.getElementById('idleModal').style.display = 'flex';
+  }
+}
+
+document.getElementById('idlePlayBtn').onclick = () => {
+  logButtonClick('ui_idle_modal_accept_play');
+  document.getElementById('idleModal').style.display = 'none';
+  startRandomPlaying();
+};
+
+document.getElementById('idleCloseBtn').onclick = () => {
+  logButtonClick('ui_idle_modal_close');
+  document.getElementById('idleModal').style.display = 'none';
+  resetIdleTimer();
+};
+
+document.getElementById('idleDisableBtn').onclick = () => {
+  logButtonClick('ui_idle_modal_disable_forever');
+  document.getElementById('idleModal').style.display = 'none';
+  isIdleSystemEnabled = false;
+  clearTimeout(idleTimer);
+};
+
+document.addEventListener('click', () => {
+  resetIdleTimer();
+});
+
+// Управление окнами Настроек и Помощи
+function openSettings() {
+  logButtonClick('ui_settings_open');
+  document.getElementById('settingsModal').style.display = 'flex';
+  clearTimeout(idleTimer);
+}
+
+document.getElementById('closeSettings').onclick = () => {
+  logButtonClick('ui_settings_close');
+  document.getElementById('settingsModal').style.display = 'none';
+  resetIdleTimer();
+};
+
+document.getElementById('openHelpFromSettings').onclick = () => {
+  logButtonClick('ui_settings_open_help');
+  document.getElementById('settingsModal').style.display = 'none';
+  showHelp();
+};
+
+function showHelp() { 
+    logButtonClick('ui_help_question_btn');
+    document.getElementById('welcomeModal').style.display = 'flex'; 
+    clearTimeout(idleTimer); 
+}
+
+// Обработчики изменений настроек
+document.getElementById('fxStyleSelect').onchange = (e) => {
+  fxConfig.style = e.target.value;
+  
+  const randomGroup = document.getElementById('randomIntervalGroup');
+  if (fxConfig.style === 'random') {
+    randomGroup.style.display = 'block';
+    startRandomFxLoop();
+  } else {
+    randomGroup.style.display = 'none';
+    stopRandomFxLoop();
+    fxConfig.activeStyle = fxConfig.style;
+  }
+  
+  logButtonClick('ui_fx_style_' + fxConfig.style);
+};
+
+document.getElementById('fxRandomIntervalRange').oninput = (e) => {
+  fxConfig.randomInterval = parseInt(e.target.value, 10);
+  document.getElementById('valFxRandomInterval').innerText = fxConfig.randomInterval + 's';
+  if (fxConfig.style === 'random') {
+    startRandomFxLoop();
+  }
+};
+
+document.getElementById('fxOpacityRange').oninput = (e) => {
+  fxConfig.opacity = parseFloat(e.target.value);
+  document.getElementById('valFxOpacity').innerText = Math.round(fxConfig.opacity * 100) + '%';
+  document.documentElement.style.setProperty('--fx-opacity', fxConfig.opacity);
+};
+
+document.getElementById('fxSpeedRange').oninput = (e) => {
+  fxConfig.speed = parseFloat(e.target.value);
+  document.getElementById('valFxSpeed').innerText = fxConfig.speed.toFixed(1) + 'x';
+};
+
+// Canvas
+const canvas = document.getElementById('stars'), ctx = canvas.getContext('2d');
+const wCanvas = document.getElementById('weatherCanvas'), wCtx = wCanvas.getContext('2d');
+const steamCanvas = document.getElementById('steamCanvas'), sCtx = steamCanvas.getContext('2d');
+
+function resize() { 
+  canvas.width = innerWidth; canvas.height = innerHeight; 
+  wCanvas.width = innerWidth; wCanvas.height = innerHeight;
+  steamCanvas.width = innerWidth; steamCanvas.height = innerHeight;
+}
+window.onresize = resize; resize();
+
+const starsArr = Array.from({length: 70}, () => ({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: Math.random() * 1.5, a: Math.random(), s: Math.random() * 0.01 }));
+
+// Функция спавна каплей дождя ИЗ-ПОД ТУЧ
+function spawnCloudRain() {
+  if (sleepMode) return;
+  const targetState = (envConfig.weather === 'random') ? activeWeatherState : envConfig.weather;
+  if (targetState !== 'cloudy' && targetState !== 'thunder') return;
+
+  const isThunder = (targetState === 'thunder');
+  const spawnRate = isThunder ? 0.8 : 0.45; // Усиленный дождь при грозе
+
+  if (Math.random() < spawnRate) {
+    const cloudsArr = [
+      document.getElementById('cloudEl1'),
+      document.getElementById('cloudEl2'),
+      document.getElementById('cloudEl3')
+    ];
+
+    // Случайный выбор облака для реалистичной привязки к источнику
+    const cloudEl = cloudsArr[Math.floor(Math.random() * cloudsArr.length)];
+    if (cloudEl) {
+      const rect = cloudEl.getBoundingClientRect();
+      if (rect.right > 0 && rect.left < innerWidth) {
+        weatherParticles.push({
+          x: rect.left + Math.random() * rect.width,
+          y: rect.bottom - 10,
+          vy: isThunder ? (Math.random() * 8 + 12) : (Math.random() * 5 + 8),
+          vx: (Math.random() - 0.5) * 1.5,
+          length: isThunder ? (Math.random() * 18 + 12) : (Math.random() * 12 + 8),
+          alpha: Math.random() * 0.4 + 0.3
+        });
+      }
+    }
+  }
+}
+
+// Функция генерации частичек эффектов кнопок
+function spawnSteam() {
+  if (sleepMode) return;
+  steamHue = (steamHue + 0.2 * fxConfig.speed) % 360; 
+
+  const activeFx = (fxConfig.style === 'random') ? fxConfig.activeStyle : fxConfig.style;
+
+  audioElements.forEach(el => {
+    if (el.active && !el.locked) {
+      const rect = el.btn.getBoundingClientRect();
+      
+      // 1. STEAM (Цветной пар)
+      if (activeFx === 'steam') {
+        if (Math.random() < 0.15) { 
+          steamParticles.push({
+            type: 'steam',
+            x: rect.left + Math.random() * rect.width,
+            y: rect.top + rect.height * 0.7,
+            vx: (Math.random() - 0.5) * 0.4 * fxConfig.speed,
+            vy: -(Math.random() * 0.3 + 0.2) * fxConfig.speed,
+            size: Math.random() * 15 + 10,
+            alpha: (Math.random() * 0.3 + 0.2) * fxConfig.opacity,
+            growth: (Math.random() * 0.1 + 0.05) * fxConfig.speed,
+            hue: steamHue 
+          });
+        }
+      }
+      
+      // 2. RAIN (Капли дождя)
+      else if (activeFx === 'rain') {
+        if (Math.random() < 0.3) {
+          steamParticles.push({
+            type: 'rain',
+            x: rect.left + Math.random() * rect.width,
+            y: rect.bottom - 5,
+            vy: (Math.random() * 3 + 2) * fxConfig.speed,
+            length: Math.random() * 10 + 8,
+            alpha: (Math.random() * 0.4 + 0.3) * fxConfig.opacity
+          });
+        }
+      }
+
+      // 3. SNOW (Снежинки)
+      else if (activeFx === 'snow') {
+        if (Math.random() < 0.2) {
+          steamParticles.push({
+            type: 'snow',
+            x: rect.left + Math.random() * rect.width,
+            y: rect.bottom,
+            vx: (Math.random() - 0.5) * 0.5 * fxConfig.speed,
+            vy: (Math.random() * 0.8 + 0.5) * fxConfig.speed,
+            size: Math.random() * 3 + 2,
+            alpha: (Math.random() * 0.5 + 0.4) * fxConfig.opacity
+          });
+        }
+      }
+
+      // 4. COMETS & ASTEROIDS
+      else if (activeFx === 'comets') {
+        if (Math.random() < 0.067) { 
+          const isAst = Math.random() < 0.4;
+          const palettes = ['#ffb400', '#00e5ff', '#8a2be2'];
+          const chosenColor = palettes[Math.floor(Math.random() * palettes.length)];
+
+          const angle = Math.random() * Math.PI * 2;
+          const speedMag = (Math.random() * 1.5 + 0.5) * fxConfig.speed;
+          const vx = Math.cos(angle) * speedMag;
+          const vy = Math.sin(angle) * speedMag;
+
+          if (isAst) {
+            const sides = Math.floor(Math.random() * 3) + 5;
+            const radius = Math.random() * 6 + 4;
+            const vertices = [];
+            for (let i = 0; i < sides; i++) {
+              const a = (i / sides) * Math.PI * 2;
+              const r = radius * (0.7 + Math.random() * 0.6);
+              vertices.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+            }
+
+            steamParticles.push({
+              type: 'comet_ast',
+              x: rect.left + Math.random() * rect.width,
+              y: rect.top + Math.random() * rect.height,
+              vx: vx,
+              vy: vy,
+              rot: Math.random() * Math.PI * 2,
+              vRot: (Math.random() - 0.5) * 0.05 * fxConfig.speed,
+              vertices: vertices,
+              alpha: 0.9 * fxConfig.opacity
+            });
+          } else {
+            steamParticles.push({
+              type: 'comet_tail',
+              x: rect.left + Math.random() * rect.width,
+              y: rect.top + Math.random() * rect.height,
+              vx: vx,
+              vy: vy,
+              size: Math.random() * 2.5 + 1.5,
+              color: chosenColor,
+              alpha: 0.95 * fxConfig.opacity,
+              history: []
+            });
+          }
+        }
+      }
+
+      // 5. NEON DUST (Неоновые искры)
+      else if (activeFx === 'neondust') {
+        if (Math.random() < 0.25) {
+          steamParticles.push({
+            type: 'neondust',
+            x: rect.left + Math.random() * rect.width,
+            y: rect.top + Math.random() * rect.height,
+            vx: (Math.random() - 0.5) * 1.2 * fxConfig.speed,
+            vy: -(Math.random() * 1.5 + 0.5) * fxConfig.speed,
+            size: Math.random() * 2.5 + 1,
+            alpha: fxConfig.opacity,
+            hue: steamHue
+          });
+        }
+      }
+
+      // 6. AURA (Пульсирующая аура)
+      else if (activeFx === 'aura') {
+        if (Math.random() < 0.04) {
+          steamParticles.push({
+            type: 'aura',
+            cx: rect.left + rect.width / 2,
+            cy: rect.top + rect.height / 2,
+            radius: rect.width / 2,
+            maxRadius: rect.width * 0.9,
+            alpha: 0.6 * fxConfig.opacity,
+            growth: (Math.random() * 0.4 + 0.2) * fxConfig.speed,
+            color: el.color
+          });
+        }
+      }
+
+    }
+  });
+}
+
+function draw() {
+  if(!sleepMode) {
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    starsArr.forEach(s => {
+      s.a += s.s; if(s.a > 1 || s.a < 0) s.s *= -1;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${Math.abs(s.a)})`; ctx.fill();
+    });
+  } else { ctx.clearRect(0,0,innerWidth,innerHeight); }
+
+  // Отрисовка фонового дождя из под облаков
+  wCtx.clearRect(0, 0, innerWidth, innerHeight);
+  if (!sleepMode) {
+    spawnCloudRain();
+    for (let i = weatherParticles.length - 1; i >= 0; i--) {
+      let p = weatherParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+
+      if (p.y > innerHeight) {
+        weatherParticles.splice(i, 1);
+        continue;
+      }
+
+      wCtx.beginPath();
+      wCtx.strokeStyle = `rgba(180, 210, 255, ${p.alpha})`;
+      wCtx.lineWidth = 1.2;
+      wCtx.moveTo(p.x, p.y);
+      wCtx.lineTo(p.x + p.vx * 2, p.y + p.length);
+      wCtx.stroke();
+    }
+  }
+
+  sCtx.clearRect(0, 0, innerWidth, innerHeight);
+  if (!sleepMode) {
+    spawnSteam();
+    
+    for (let i = steamParticles.length - 1; i >= 0; i--) {
+      let p = steamParticles[i];
+
+      // Отрисовка: STEAM
+      if (p.type === 'steam') {
+        p.x += p.vx; p.y += p.vy; p.size += p.growth; p.alpha -= 0.0005 * fxConfig.speed;
+        if (p.alpha <= 0) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        let gradient = sCtx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+        gradient.addColorStop(0, `hsla(${p.hue}, 80%, 60%, ${p.alpha})`);
+        gradient.addColorStop(0.5, `hsla(${p.hue}, 80%, 60%, ${p.alpha * 0.4})`);
+        gradient.addColorStop(1, `hsla(${p.hue}, 80%, 60%, 0)`);
+        sCtx.fillStyle = gradient;
+        sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        sCtx.fill();
+      }
+
+      // Отрисовка: RAIN
+      else if (p.type === 'rain') {
+        p.y += p.vy;
+        p.alpha -= 0.005 * fxConfig.speed;
+        if (p.alpha <= 0 || p.y > innerHeight) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.strokeStyle = `rgba(180, 210, 255, ${p.alpha})`;
+        sCtx.lineWidth = 1.5;
+        sCtx.moveTo(p.x, p.y);
+        sCtx.lineTo(p.x, p.y + p.length);
+        sCtx.stroke();
+      }
+
+      // Отрисовка: SNOW
+      else if (p.type === 'snow') {
+        p.x += p.vx + Math.sin(p.y * 0.05) * 0.3;
+        p.y += p.vy;
+        p.alpha -= 0.002 * fxConfig.speed;
+        if (p.alpha <= 0 || p.y > innerHeight) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.fillStyle = `rgba(220, 235, 255, ${p.alpha})`;
+        sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        sCtx.fill();
+      }
+
+      // Отрисовка: COMETS & ASTEROIDS
+      else if (p.type === 'comet_ast') {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vRot;
+        p.alpha -= 0.004 * fxConfig.speed;
+
+        if (p.alpha <= 0 || p.x < 0 || p.x > innerWidth || p.y < 0 || p.y > innerHeight) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.save();
+        sCtx.translate(p.x, p.y);
+        sCtx.rotate(p.rot);
+        sCtx.beginPath();
+        p.vertices.forEach((v, idx) => {
+          if (idx === 0) sCtx.moveTo(v.x, v.y);
+          else sCtx.lineTo(v.x, v.y);
+        });
+        sCtx.closePath();
+        sCtx.fillStyle = `rgba(160, 160, 180, ${p.alpha})`;
+        sCtx.strokeStyle = `rgba(210, 210, 230, ${p.alpha})`;
+        sCtx.lineWidth = 1;
+        sCtx.fill();
+        sCtx.stroke();
+        sCtx.restore();
+      }
+      else if (p.type === 'comet_tail') {
+        p.history.push({ x: p.x, y: p.y });
+        if (p.history.length > 10) p.history.shift();
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.005 * fxConfig.speed;
+
+        if (p.alpha <= 0 || p.x < 0 || p.x > innerWidth || p.y < 0 || p.y > innerHeight) { steamParticles.splice(i, 1); continue; }
+
+        // Рисуем шлейф
+        if (p.history.length > 1) {
+          sCtx.beginPath();
+          sCtx.moveTo(p.history[0].x, p.history[0].y);
+          for (let h = 1; h < p.history.length; h++) {
+            sCtx.lineTo(p.history[h].x, p.history[h].y);
+          }
+          sCtx.lineTo(p.x, p.y);
+          sCtx.strokeStyle = p.color;
+          sCtx.globalAlpha = p.alpha * 0.6;
+          sCtx.lineWidth = p.size;
+          sCtx.stroke();
+          sCtx.globalAlpha = 1.0;
+        }
+
+        // Ядро кометы
+        sCtx.beginPath();
+        sCtx.fillStyle = '#ffffff';
+        sCtx.shadowBlur = 6;
+        sCtx.shadowColor = p.color;
+        sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        sCtx.fill();
+        sCtx.shadowBlur = 0;
+      }
+
+      // Отрисовка: NEON DUST
+      else if (p.type === 'neondust') {
+        p.x += p.vx; p.y += p.vy;
+        p.alpha -= 0.012 * fxConfig.speed;
+        if (p.alpha <= 0) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.fillStyle = `hsla(${p.hue}, 100%, 65%, ${p.alpha})`;
+        sCtx.shadowBlur = 8;
+        sCtx.shadowColor = `hsl(${p.hue}, 100%, 50%)`;
+        sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        sCtx.fill();
+        sCtx.shadowBlur = 0;
+      }
+
+      // Отрисовка: AURA
+      else if (p.type === 'aura') {
+        p.radius += p.growth;
+        p.alpha -= 0.008 * fxConfig.speed;
+        if (p.alpha <= 0 || p.radius >= p.maxRadius) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.strokeStyle = p.color;
+        sCtx.globalAlpha = p.alpha;
+        sCtx.lineWidth = 2;
+        sCtx.arc(p.cx, p.cy, p.radius, 0, Math.PI * 2);
+        sCtx.stroke();
+        sCtx.globalAlpha = 1;
+      }
+
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+document.getElementById('welcomeModal').style.display = 'flex';
+updateUI();
+applyEnvironmentSettings();
+
+audioElements.forEach(el => {
+  if (!el.locked) {
+    preloadImage(el);
+  }
+});
+
+function switchTab(event, tabId) {
+    logButtonClick('ui_welcome_tab_switch_' + tabId);
+    document.querySelectorAll('.help-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    event.currentTarget.classList.add('active');
+}
+
+// iOS Wakeup Overlay
+const wakeUpOverlay = document.createElement('div');
+wakeUpOverlay.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 100000; display: none; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.3s ease; opacity: 0;
+`;
+
+const continueBtn = document.createElement('button');
+continueBtn.innerText = "Continue";
+continueBtn.style.cssText = `
+    padding: 14px 40px; font-size: 18px; font-weight: 600; color: white;
+    background: linear-gradient(135deg, #8a2be2 0%, #4a00e0 100%);
+    border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 4px 15px rgba(138, 43, 226, 0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease; -webkit-tap-highlight-color: transparent;
+`;
+
+wakeUpOverlay.appendChild(continueBtn);
+document.body.appendChild(wakeUpOverlay);
+
+function showWakeUpScreen() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (isIOS) {
+        wakeUpOverlay.style.display = 'flex';
+        setTimeout(() => { wakeUpOverlay.style.opacity = '1'; }, 10);
+    }
+}
+
+function handleContinueClick() {
+    logButtonClick('ui_ios_wake_continue');
+    try {
+        if (typeof firebase !== 'undefined' && firebase.database) {
+            firebase.database().goOffline();
+            
+            setTimeout(() => {
+                firebase.database().goOnline();
+                updateConnections();
+            }, 300);
+        }
+    } catch (e) {
+        console.error("Ошибка принудительного обновления сессии:", e);
+    }
+    
+    wakeUpOverlay.style.opacity = '0';
+    setTimeout(() => { wakeUpOverlay.style.display = 'none'; }, 300);
+}
+
+continueBtn.addEventListener('click', handleContinueClick);
+continueBtn.addEventListener('touchstart', () => { continueBtn.style.transform = 'scale(0.95)'; });
+continueBtn.addEventListener('touchend', () => { continueBtn.style.transform = 'scale(1)'; });
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) showWakeUpScreen();
+});
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) showWakeUpScreen();
+});
+
+// Dropdown Links
+const linksTrigger = document.getElementById('linksTrigger');
+const linksOptions = document.getElementById('linksOptions');
+const speedDropdown = document.getElementById('speedDropdown');
+
+linksTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  logButtonClick('ui_social_links_menu');
+  if (speedDropdown) speedDropdown.classList.remove('open');
+  linksOptions.classList.toggle('open');
+});
+
+window.addEventListener('click', () => {
+  linksOptions.classList.remove('open');
+});
+</script>
 </body>
 </html>
