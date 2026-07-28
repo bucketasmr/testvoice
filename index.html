@@ -120,11 +120,16 @@
   #sleepBtn.active { background: #ffb400; border: 1px solid #ffb400; color: black; box-shadow: 0 0 15px rgba(255, 180, 0, 0.4); }
 
   .sound-grid { 
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); 
-    gap: 15px; width: 100%; max-width: 600px; padding: 10px; 
-    overflow-y: auto; flex-grow: 1; z-index: 5; transition: opacity 0.5s, visibility 0.5s;
+    display: grid; grid-template-columns: repeat(3, minmax(85px, 1fr)); 
+    gap: var(--sound-gap, 15px); width: 100%; max-width: 600px; padding: 10px; 
+    overflow-y: auto; flex-grow: 1; z-index: 5; transition: opacity 0.5s, visibility 0.5s, gap 0.3s ease;
   }
   .sound-grid.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+  .sound-grid > *:nth-child(4) {
+    margin-left: var(--sound-shift, 0px);
+    transition: margin-left 0.3s ease;
+  }
 
   .sound-button { 
     aspect-ratio: 1/1; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px;
@@ -297,6 +302,16 @@
         <option value="cloudy">☁️ Clouds + Rain</option>
         <option value="thunder">🌩️ Thunderstorm</option>
         <option value="random">🔀 Random Weather (120s)</option>
+      </select>
+    </div>
+
+    <!-- Настройка отступа звуков -->
+    <div class="settings-group">
+      <label id="lblSoundSpacing">Sound Spacing</label>
+      <select id="soundSpacingSelect" class="settings-select">
+        <option value="close">Близко</option>
+        <option value="medium" selected>Средне</option>
+        <option value="far">Далеко</option>
       </select>
     </div>
 
@@ -526,9 +541,6 @@ const sounds = [
   { "file": "wood.mp3", "img": "wood.png", "name": { "en": "Wood", "pt": "Madeira", "ru": "Дерево", "uk": "Дерево" }, "color": "#ffff00", "locked": false },
   { "file": "wax.mp3", "img": "wax.png", "name": { "en": "Wax", "pt": "Cera", "ru": "Воск", "uk": "Віск" }, "color": "#ffa500", "locked": false },
   { "file": "carrot.mp3", "img": "carrot.png", "name": { "en": "Carrot", "pt": "Cenoura", "ru": "Морковь", "uk": "Морква" }, "color": "#ff8c00", "locked": false },
-  { "file": "purplebrush.mp3", "img": "purplebrush.png", "name": { "en": "Purple Brush", "pt": "Pincel Roxo", "ru": "Фиолетовая кисть", "uk": "Фіолетовий пензель" }, "color": "#9664ff", "locked": false },
-  { "file": "wax.mp3", "img": "wax.png", "name": { "en": "Wax", "pt": "Cera", "ru": "Воск", "uk": "Віск" }, "color": "#ffa500", "locked": false },
-  { "file": "choko.mp3", "img": "choko.png", "name": { "en": "Choco", "pt": "Chocolate", "ru": "Шоколад", "uk": "Шоколад" }, "color": "#8b4513", "locked": false },
   { "file": "purplebrush.mp3", "img": "purplebrush.png", "name": { "en": "Purple Brush", "pt": "Pincel Roxo", "ru": "Фиолетовая кисть", "uk": "Фіолетовий пензель" }, "color": "#9664ff", "locked": false }
 ];
 
@@ -550,7 +562,7 @@ const uiTL = {
     unlockTitle: "Unlock Trigger", unlockDesc: "Unlock this trigger!", 
     unlockBtn: "🔓 Unlock Sound", closeBtn: "Close", idleTitle: "Start playing?", idleDesc: "Would you like to start the ASMR session?", idleDisable: "Don't show again",
     settingsTitle: "Settings", helpBtnLabel: "Help / Guide", lblFxStyle: "Effect Style", lblFxOpacity: "Opacity / Glow", lblFxSpeed: "Effect Speed", lblFxRandomInterval: "Random Change Interval",
-    lblTimeOfDay: "Time of Day", lblWeather: "Weather",
+    lblTimeOfDay: "Time of Day", lblWeather: "Weather", lblSoundSpacing: "Sound Spacing",
     todNames: { morning: "🌅 Morning", noon: "☀️ Noon", evening: "🌆 Evening", night: "🌙 Night", full_cycle: "🔄 Full 24h Cycle (120s)" },
     weatherNames: { clear: "☀️ Clear", cloudy: "☁️ Clouds + Rain", thunder: "🌩️ Thunderstorm", random: "🔀 Random Weather (120s)" },
     fxNames: { steam: "💨 Steam (Color)", rain: "💧 Rain Drops", snow: "❄️ Snowflakes", comets: "☄️ Comets & Asteroids", neondust: "✨ Neon Dust", aura: "🌀 Pulsing Aura", random: "🔀 Random Effect" },
@@ -579,7 +591,7 @@ const uiTL = {
     unlockTitle: "Desbloquear Som", unlockDesc: "Desbloqueie este som!", 
     unlockBtn: "🔓 Desbloquear Som", closeBtn: "Fechar", idleTitle: "Começar a tocar?", idleDesc: "Você está inativo. Gostaria de iniciar a sessão de ASMR?", idleDisable: "Não mostrar novamente",
     settingsTitle: "Configurações", helpBtnLabel: "Ajuda / Guia", lblFxStyle: "Estilo do Efeito", lblFxOpacity: "Opacidade / Brilho", lblFxSpeed: "Velocidade do Efeito", lblFxRandomInterval: "Intervalo de Troca Aleatória",
-    lblTimeOfDay: "Hora do Dia", lblWeather: "Clima",
+    lblTimeOfDay: "Hora do Dia", lblWeather: "Clima", lblSoundSpacing: "Espaçamento de Sons",
     todNames: { morning: "🌅 Manhã", noon: "☀️ Meio-dia", evening: "🌆 Tarde / Noite", night: "🌙 Noite", full_cycle: "🔄 Ciclo de 24h (120s)" },
     weatherNames: { clear: "☀️ Limpo", cloudy: "☁️ Nuvens + Chuva", thunder: "🌩️ Tempestade", random: "🔀 Clima Aleatório (120s)" },
     fxNames: { steam: "💨 Vapor (Colorido)", rain: "💧 Gotas de Chuva", snow: "❄️ Flocos de Neve", comets: "☄️ Cometas e Asteroides", neondust: "✨ Poeira Neon", aura: "🌀 Aura Pulsante", random: "🔀 Efeito Aleatório" },
@@ -608,7 +620,7 @@ const uiTL = {
     unlockTitle: "Відкрити звук", unlockDesc: "Розблокуйте цей тригер!", 
     unlockBtn: "🔓 Розблокувати звук", closeBtn: "Закрити", idleTitle: "Запустити програвання?", idleDesc: "Ви нічого не натискали. Бажаєте увімкнути випадковий режим АСМР?", idleDisable: "Приховати нагадування",
     settingsTitle: "Налаштування", helpBtnLabel: "Допомога / Інструкція", lblFxStyle: "Стиль ефекту", lblFxOpacity: "Прозорість / Сяйво", lblFxSpeed: "Швидкість ефекту", lblFxRandomInterval: "Інтервал зміни рандому",
-    lblTimeOfDay: "Час доби", lblWeather: "Погода",
+    lblTimeOfDay: "Час доби", lblWeather: "Погода", lblSoundSpacing: "Відступ звуків",
     todNames: { morning: "🌅 Ранок", noon: "☀️ Полдень", evening: "🌆 Вечір", night: "🌙 Ніч", full_cycle: "🔄 Повні добу (120с)" },
     weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Хмари + Дощ", thunder: "🌩️ Гроза", random: "🔀 Рандомна погода (120с)" },
     fxNames: { steam: "💨 Кольорова пара", rain: "💧 Краплі дощу", snow: "❄️ Сніжинки", comets: "☄️ Комети та астероїди", neondust: "✨ Магічні іскри", aura: "🌀 Пульсуюча аура", random: "🔀 Рандомний ефект" },
@@ -637,7 +649,7 @@ const uiTL = {
     unlockTitle: "Открыть звук", unlockDesc: "Разблокируйте этот триггер!", 
     unlockBtn: "🔓 Разблокировать звук", closeBtn: "Закрыть", idleTitle: "Запустить проигрывание?", idleDesc: "Вы ничего не нажимали. Хотите включить случайный режим АСМР?", idleDisable: "Скрыть напоминание",
     settingsTitle: "Настройки", helpBtnLabel: "Помощь / Инструкция", lblFxStyle: "Стиль эффекта", lblFxOpacity: "Прозрачность / Свечение", lblFxSpeed: "Скорость эффекта", lblFxRandomInterval: "Интервал смены рандома",
-    lblTimeOfDay: "Время суток", lblWeather: "Погода",
+    lblTimeOfDay: "Время суток", lblWeather: "Погода", lblSoundSpacing: "Отступ звуков",
     todNames: { morning: "🌅 Утро", noon: "☀️ Полдень", evening: "🌆 Вечер", night: "🌙 Ночь", full_cycle: "🔄 Полные сутки (120 сек)" },
     weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Тучи + Дождь", thunder: "🌩️ Гроза", random: "🔀 Рандомная погода (120 сек)" },
     fxNames: { steam: "💨 Цветной пар", rain: "💧 Капли дождя", snow: "❄️ Снежинки", comets: "☄️ Кометы и астероиды", neondust: "✨ Магические искры", aura: "🌀 Пульсирующая аура", random: "🔀 Рандом" },
@@ -995,6 +1007,7 @@ function updateUI() {
   document.getElementById('lblFxRandomInterval').innerText = t.lblFxRandomInterval;
   document.getElementById('lblTimeOfDay').innerText = t.lblTimeOfDay;
   document.getElementById('lblWeather').innerText = t.lblWeather;
+  document.getElementById('lblSoundSpacing').innerText = t.lblSoundSpacing;
 
   document.getElementById('fxPromoTitle').innerText = t.fxPromoTitle;
   document.getElementById('fxPromoDesc').innerText = t.fxPromoDesc;
@@ -1219,6 +1232,22 @@ document.getElementById('weatherSelect').onchange = (e) => {
   envConfig.weather = e.target.value;
   logButtonClick('ui_weather_' + envConfig.weather);
   applyEnvironmentSettings();
+};
+
+document.getElementById('soundSpacingSelect').onchange = (e) => {
+  const mode = e.target.value;
+  logButtonClick('ui_sound_spacing_' + mode);
+  const root = document.documentElement;
+  if (mode === 'close') {
+    root.style.setProperty('--sound-gap', '8px');
+    root.style.setProperty('--sound-shift', '0px');
+  } else if (mode === 'medium') {
+    root.style.setProperty('--sound-gap', '15px');
+    root.style.setProperty('--sound-shift', '0px');
+  } else if (mode === 'far') {
+    root.style.setProperty('--sound-gap', '25px');
+    root.style.setProperty('--sound-shift', '20px');
+  }
 };
 
 // Обработчики кнопок промо-окна эффектов
