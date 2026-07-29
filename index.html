@@ -311,8 +311,8 @@
       <label id="lblWeather">Weather</label>
       <select id="weatherSelect" class="settings-select">
         <option value="clear">☀️ Clear</option>
-        <option value="cloudy" selected>☁️ Clouds + Rain</option>
-        <option value="autumn_shower">🍁 Autumn Shower NEW</option>
+        <option value="cloudy">☁️ Clouds + Rain</option>
+        <option value="autumn_shower"selected>🍁 Autumn Shower NEW</option>
         <option value="random">🔀 Random Weather (120s)</option>
       </select>
     </div>
@@ -554,7 +554,7 @@ const uiTL = {
   en: { 
     code: "EN", customBtn: "Settings", title: "BUCKET ASMR", play: "Play", pause: "Pause", repair: "REPAIR", sleep: "Sleep", tabFeatures: "Functions", tabGuide: "Guide", 
     features: [
-      "<span>✦</span> <b>New weather Autumn:</b> 🍁A downpour with leaves and raindrops.", 
+      "<span>✦</span> <b>New weather:</b> 🍁Autumn. A downpour with leaves and raindrops.", 
       "<span>✦</span> <b>Stay Awake:</b> Screen won't turn off automatically.", 
       "<span>✦</span> <b>Mixer:</b> Play multiple sounds at the same time.", 
       "<span>✦</span> <b>Not Working?:</b> Turn off Silent Mode."
@@ -584,7 +584,7 @@ const uiTL = {
   pt: { 
     code: "PT", customBtn: "Personalizar", title: "BALDE ASMR", play: "Tocar", pause: "Pausa", repair: "REPARAR", sleep: "Dormir", tabFeatures: "Funções", tabGuide: "Guia", 
     features: [
-      "<span>✦</span> <b>Novo clima de Outono:</b> 🍁Um aguaceiro com folhas e gotas de chuva.", 
+      "<span>✦</span> <b>Novo clima :</b> 🍁de Outono. Um aguaceiro com folhas e gotas de chuva.", 
       "<span>✦</span> <b>Sempre Ativo:</b> A tela não apaga durante o uso.", 
       "<span>✦</span> <b>Mixer:</b> Toque vários sons ao mesmo tempo.", 
       "<span>✦</span> <b>Não funcionou?:</b> Desative o modo silencioso."
@@ -614,7 +614,7 @@ const uiTL = {
   uk: { 
     code: "UK", customBtn: "Налаштування", title: "ВІДРО АСМР", play: "Грати", pause: "Пауза", repair: "ЛАГОДИТИ", sleep: "Сон", tabFeatures: "Функції", tabGuide: "Інструкція", 
     features: [
-      "<span>✦</span> <b>Нова погода Осінь:</b> 🍁Злива з листям та краплями дощу.", 
+      "<span>✦</span> <b>Нова погода :</b> 🍁Осінь. Злива з листям та краплями дощу.", 
       "<span>✦</span> <b>Без Сну:</b> Екран не згасає автоматично.", 
       "<span>✦</span> <b>Міксер:</b> Грайте кілька звуків одночасно.", 
       "<span>✦</span> <b>Не працює?:</b> Вимкніть беззвучний режим."
@@ -644,7 +644,7 @@ const uiTL = {
   ru: { 
     code: "RU", customBtn: "Настройки", title: "ВЕДРО АСМР", play: "Играть", pause: "Пауза", repair: "ЧИНИТЬ", sleep: "Сон", tabFeatures: "Функции", tabGuide: "Инструкция", 
     features: [
-      "<span>✦</span> <b>Новая погода Осень:</b> 🍁Ливень с листьями и каплями дождя.", 
+      "<span>✦</span> <b>Новая погода :</b> 🍁Осень. Ливень с листьями и каплями дождя.", 
       "<span>✦</span> <b>Бодрость:</b> Экран не гаснет во время сеанса.", 
       "<span>✦</span> <b>Микшер:</b> Запуск нескольких звуков одновременно.", 
       "<span>✦</span> <b>Не работает?:</b> Отключите беззвучный режим."
@@ -683,7 +683,7 @@ let autumnParticles = [];
 let accumulatedWater = [];
 let accumulatedLeaves = [];
 
-const MAX_ACCUMULATED_ITEMS = 600;
+const MAX_ACCUMULATED_ITEMS = 2600;
 let pendingUnlockElement = null;
 let adTimerInterval = null;
 let steamHue = 270;
@@ -750,7 +750,7 @@ let fxConfig = {
 
 let envConfig = {
   timeOfDay: 'night', 
-  weather: 'cloudy'      
+  weather: 'autumn_shower'      
 };
 
 let activeWeatherState = 'clear'; 
