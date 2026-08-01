@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="darkreader-lock">
 <meta name="color-scheme" content="dark">
-<title>SLEEPY BUCKET ASMR</title>
+<title>BUCKET ASMR ROOM</title>
 
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -63,6 +63,18 @@
   .cloud3 { width: 180px; height: 50px; top: 22%; left: -200px; animation-duration: 28s; animation-delay: 5s; }
   .cloud3::before { width: 70px; height: 70px; top: -30px; left: 20px; }
   .cloud3::after { width: 60px; height: 60px; top: -25px; left: 75px; }
+  
+  .cloud4 { width: 260px; height: 75px; top: 18%; left: -280px; animation-duration: 42s; animation-delay: 3s; }
+  .cloud4::before { width: 110px; height: 110px; top: -50px; left: 40px; }
+  .cloud4::after { width: 90px; height: 90px; top: -40px; left: 120px; }
+
+  .cloud5 { width: 200px; height: 55px; top: 8%; left: -220px; animation-duration: 30s; animation-delay: 7s; }
+  .cloud5::before { width: 80px; height: 80px; top: -35px; left: 25px; }
+  .cloud5::after { width: 70px; height: 70px; top: -30px; left: 85px; }
+
+  .cloud6 { width: 300px; height: 85px; top: 15%; left: -320px; animation-duration: 48s; animation-delay: 15s; }
+  .cloud6::before { width: 130px; height: 130px; top: -60px; left: 45px; }
+  .cloud6::after { width: 100px; height: 100px; top: -40px; left: 140px; }
 
   @keyframes floatClouds {
     0% { transform: translateX(0); }
@@ -177,7 +189,12 @@
 
   canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; }
   #stars { z-index: 1; transition: opacity 2s; }
-  #weatherCanvas { z-index: 3; }
+  #weatherCanvas { 
+    z-index: 3; 
+    /* Эффект жидких капель (Metaballs): размытие и контраст создают эффект слияния */
+    filter: blur(4px) contrast(15);
+    -webkit-filter: blur(4px) contrast(15);
+  }
   #steamCanvas { z-index: 4; }
   
   .modal { 
@@ -277,6 +294,9 @@
   <div class="cloud cloud1" id="cloudEl1"></div>
   <div class="cloud cloud2" id="cloudEl2"></div>
   <div class="cloud cloud3" id="cloudEl3"></div>
+  <div class="cloud cloud4" id="cloudEl4"></div>
+  <div class="cloud cloud5" id="cloudEl5"></div>
+  <div class="cloud cloud6" id="cloudEl6"></div>
 </div>
 <canvas id="weatherCanvas"></canvas>
 <canvas id="steamCanvas"></canvas>
@@ -311,13 +331,11 @@
       <label id="lblWeather">Weather</label>
       <select id="weatherSelect" class="settings-select">
         <option value="clear">☀️ Clear</option>
-        <option value="cloudy">☁️ Clouds + Rain</option>
-        <option value="autumn_shower"selected>🍁 Autumn Shower NEW</option>
+        <option value="cloudy" selected>☁️ Clouds + Rain</option>
+        <option value="autumn_shower">🍁 Autumn Shower NEW</option>
         <option value="random">🔀 Random Weather (120s)</option>
       </select>
     </div>
-	
-	
 
     <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 18px 0;">
 
@@ -682,8 +700,14 @@ let weatherParticles = [];
 let autumnParticles = []; 
 let accumulatedWater = [];
 let accumulatedLeaves = [];
+// Динамика дождя
+let rainIntensityMultiplier = 0.4;
+let rainWaveTimer = 0;
+const rainWaveSpeed = 0.00004;      
+const rainMinMultiplier = 2.9;   
+const rainMaxMultiplier = 8.4;   
 
-const MAX_ACCUMULATED_ITEMS = 2600;
+const MAX_ACCUMULATED_ITEMS = 4500;
 let pendingUnlockElement = null;
 let adTimerInterval = null;
 let steamHue = 270;
@@ -750,7 +774,7 @@ let fxConfig = {
 
 let envConfig = {
   timeOfDay: 'night', 
-  weather: 'autumn_shower'      
+  weather: 'cloudy'      
 };
 
 let activeWeatherState = 'clear'; 
@@ -1449,14 +1473,28 @@ function spawnCloudRain() {
   const targetState = (envConfig.weather === 'random') ? activeWeatherState : envConfig.weather;
   if (targetState !== 'cloudy' && targetState !== 'autumn_shower') return;
 
+  rainWaveTimer += rainWaveSpeed;
+  const wave = Math.sin(rainWaveTimer);
+  const amplitude = (rainMaxMultiplier - rainMinMultiplier) / 2;
+  const median = (rainMaxMultiplier + rainMinMultiplier) / 2;
+  rainIntensityMultiplier = median + wave * amplitude;
+  
+  if (rainIntensityMultiplier < (rainMinMultiplier + 0.3) && Math.random() < 0.7) {
+    return;
+  }
+
   const isAutumn = (targetState === 'autumn_shower');
-  const spawnRate = isAutumn ? 0.9 : 0.45; 
+  const baseSpawnRate = isAutumn ? 1.2 : 1.0; 
+  const spawnRate = baseSpawnRate * rainIntensityMultiplier;
 
   if (Math.random() < spawnRate) {
     const cloudsArr = [
       document.getElementById('cloudEl1'),
       document.getElementById('cloudEl2'),
-      document.getElementById('cloudEl3')
+      document.getElementById('cloudEl3'),
+      document.getElementById('cloudEl4'),
+      document.getElementById('cloudEl5'),
+      document.getElementById('cloudEl6')
     ];
 
     const cloudEl = cloudsArr[Math.floor(Math.random() * cloudsArr.length)];
@@ -1468,41 +1506,42 @@ function spawnCloudRain() {
         let startX = rect.left + Math.random() * rect.width;
         let startY = rect.bottom - 10;
 
-        // Повышенная базовая скорость для iOS/всех устройств (умножена на коэффициент или увеличена)
         if (isAutumn) {
-          if (Math.random() < 0.75) {
+            if (Math.random() < 0.75) {
+              weatherParticles.push({
+                x: startX,
+                y: startY,
+                vy: (Math.random() * 10 + 14) * 1.5 * (0.8 + rainIntensityMultiplier * 0.2),
+                vx: (Math.random() - 0.5) * 1.0,
+                length: (Math.random() * 15 + 10) * Math.min(rainIntensityMultiplier, 1.5),
+                alpha: (Math.random() * 0.4 + 0.3) * Math.min(rainIntensityMultiplier, 1.0),
+                missChance: 1.0
+              });
+            } else {
+              const autumnColors = ['#d35400', '#e67e22', '#c0392b', '#f39c12'];
+              autumnParticles.push({
+                x: startX,
+                y: startY,
+                vy: (Math.random() * 0.8 + 0.6) * 1.5,
+                vx: (Math.random() - 0.1) * 0.1,
+                angle: Math.random() * Math.PI * 2,
+                vAngle: (Math.random() - 0.5) * 0.02,
+                size: Math.random() * 8 + 6,
+                color: autumnColors[Math.floor(Math.random() * autumnColors.length)],
+                alpha: Math.random() * 0.4 + 0.6
+              });
+            }
+          } else {
             weatherParticles.push({
               x: startX,
               y: startY,
-              vy: (Math.random() * 10 + 14) * 1.5, // Увеличена скорость капель
-              vx: (Math.random() - 0.5) * 1.0,
-              length: Math.random() * 15 + 10,
-              alpha: Math.random() * 0.4 + 0.3
-            });
-          } else {
-            const autumnColors = ['#d35400', '#e67e22', '#c0392b', '#f39c12'];
-            autumnParticles.push({
-              x: startX,
-              y: startY,
-              vy: (Math.random() * 0.8 + 0.6) * 1.5, // Увеличена скорость листьев
-              vx: (Math.random() - 0.1) * 0.1,
-              angle: Math.random() * Math.PI * 2,
-              vAngle: (Math.random() - 0.5) * 0.02,
-              size: Math.random() * 8 + 6,
-              color: autumnColors[Math.floor(Math.random() * autumnColors.length)],
-              alpha: Math.random() * 0.4 + 0.6
+              vy: (Math.random() * 6 + 10) * 1.5 * (0.8 + rainIntensityMultiplier * 0.2),
+              vx: (Math.random() - 0.5) * 1.5,
+              length: (Math.random() * 12 + 8) * Math.min(rainIntensityMultiplier, 1.6),
+              alpha: (Math.random() * 0.4 + 0.3) * Math.min(rainIntensityMultiplier, 1.0),
+              missChance: 1.0
             });
           }
-        } else {
-          weatherParticles.push({
-            x: startX,
-            y: startY,
-            vy: (Math.random() * 6 + 10) * 1.5, // Увеличена скорость капель дождя
-            vx: (Math.random() - 0.5) * 1.5,
-            length: Math.random() * 12 + 8,
-            alpha: Math.random() * 0.4 + 0.3
-          });
-        }
       }
     }
   }
@@ -1651,20 +1690,55 @@ function draw() {
   if (!sleepMode) {
     spawnCloudRain();
     
-    // --- 1. Обработка капель дождя ---
+    const soundGridEl = document.getElementById('soundGrid');
+
     for (let i = weatherParticles.length - 1; i >= 0; i--) {
       let p = weatherParticles[i];
       p.x += p.vx;
       p.y += p.vy;
 
-      // Изменено условие падения: теперь накапливание происходит строго в видимой нижней части экрана (например, над панелью управления / внизу вьюпорта)
+      let hitTile = false;
+      const soundButtons = soundGridEl.querySelectorAll('.sound-button');
+      
+      for (let btn of soundButtons) {
+        const bRect = btn.getBoundingClientRect();
+        if (p.x >= bRect.left && p.x <= bRect.right && p.y >= bRect.top && p.y <= bRect.bottom) {
+          hitTile = true;
+          if (accumulatedWater.length < MAX_ACCUMULATED_ITEMS) {
+            // При столкновении с кнопкой капли распределяются, останавливаются внизу и через 3 секунды падают дальше
+            accumulatedWater.push({
+              x: p.x,
+              y: p.y,
+              vx: (Math.random() - 0.5) * 0.5,
+              vy: Math.random() * 1.5 + 0.5,
+              radius: Math.random() * 3 + 2,
+              alpha: 0.9,
+              onButton: true,
+              buttonBottom: bRect.bottom,
+              waiting: false,
+              fallDelayTime: 0
+            });
+          }
+          break;
+        }
+      }
+
+      if (hitTile) {
+        weatherParticles.splice(i, 1);
+        continue;
+      }
+
       if (p.y > innerHeight - 90) {
         if (accumulatedWater.length < MAX_ACCUMULATED_ITEMS) {
           accumulatedWater.push({
             x: p.x,
-            y: innerHeight - (Math.random() * 70 + 20), // Распределяются в нижней видимой полосе сайта
+            y: innerHeight - (Math.random() * 70 + 20),
+            vx: 0,
+            vy: 0,
             radius: Math.random() * 3 + 2,
-            alpha: 0.7
+            alpha: 0.8,
+            onButton: false,
+            waiting: false
           });
         }
         weatherParticles.splice(i, 1);
@@ -1672,21 +1746,20 @@ function draw() {
       }
 
       wCtx.beginPath();
-      wCtx.strokeStyle = `rgba(180, 210, 255, ${p.alpha})`;
-      wCtx.lineWidth = 1.2;
+      wCtx.strokeStyle = `rgba(200, 225, 255, ${p.alpha})`;
+      wCtx.lineWidth = 2.0;
       wCtx.moveTo(p.x, p.y);
       wCtx.lineTo(p.x + p.vx * 2, p.y + p.length);
       wCtx.stroke();
     }
 
-    // --- 2. Обработка падающих листьев ---
+    // --- Отрисовка листьев ---
     for (let i = autumnParticles.length - 1; i >= 0; i--) {
       let leaf = autumnParticles[i];
       leaf.x += leaf.vx + Math.sin(leaf.y * 0.01) * 0.3;
       leaf.y += leaf.vy;
       leaf.angle += leaf.vAngle;
 
-      // Изменено условие падения: листья также оседают в видимой нижней зоне сайта
       if (leaf.y > innerHeight - 90) {
         if (accumulatedLeaves.length < MAX_ACCUMULATED_ITEMS) {
           accumulatedLeaves.push({
@@ -1713,10 +1786,35 @@ function draw() {
       wCtx.restore();
     }
 
-    // --- 3. Отрисовка и плавное исчезновение скопившейся воды ---
+// --- Обработка и стекание скопившейся воды (замедленная и уменьшенная версия) ---
     for (let i = accumulatedWater.length - 1; i >= 0; i--) {
       let w = accumulatedWater[i];
-      w.alpha -= 0.001; 
+      
+      if (w.onButton) {
+        // Плавное и медленное стекание прямо по кнопке
+        w.y += 0.35; 
+        w.x += (Math.random() - 0.5) * 0.15;
+
+        // Достигли низа кнопки звука — продолжаем падение на плавной скорости
+        if (w.y >= w.buttonBottom - 5) {
+          w.onButton = false;
+          w.vy = Math.random() * 1.2 + 0.5; 
+          w.vx = (Math.random() - 0.5) * 0.2;
+        }
+      } else {
+        // Капля падает дальше вниз к низу экрана на сниженной и ограниченной скорости
+        w.vy += 0.03; 
+        if (w.vy > 2.2) w.vy = 2.2; 
+        
+        w.y += w.vy;
+        w.x += w.vx;
+
+        if (w.y > innerHeight - 50) {
+          w.vy = 0; 
+        }
+      }
+
+      w.alpha -= 0.0004; 
 
       if (w.alpha <= 0) {
         accumulatedWater.splice(i, 1);
@@ -1724,15 +1822,15 @@ function draw() {
       }
 
       wCtx.beginPath();
-      wCtx.fillStyle = `rgba(180, 210, 255, ${w.alpha})`;
-      wCtx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
+      wCtx.fillStyle = `rgba(200, 230, 255, ${w.alpha})`;
+      // Уменьшаем радиус в 2 раза, чтобы капли были мелкими и аккуратными
+      wCtx.arc(w.x, w.y, w.radius * 0.5, 0, Math.PI * 2);
       wCtx.fill();
     }
 
-    // --- 4. Отрисовка и плавное исчезновение накопившихся листьев ---
     for (let i = accumulatedLeaves.length - 1; i >= 0; i--) {
       let l = accumulatedLeaves[i];
-      l.alpha -= 0.0005; 
+      l.alpha -= 0.000066; 
 
       if (l.alpha <= 0) {
         accumulatedLeaves.splice(i, 1);
@@ -1881,7 +1979,6 @@ function draw() {
 
   requestAnimationFrame(draw);
 }
-
 draw();
 
 document.getElementById('welcomeModal').style.display = 'flex';
@@ -1979,4 +2076,3 @@ window.addEventListener('click', () => {
 </script>
 </body>
 </html>
-```[cite: 8]
