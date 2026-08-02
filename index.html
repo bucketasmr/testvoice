@@ -152,7 +152,7 @@
     color: white; 
     transform: scale(1.03); 
     border: 1px solid #8a2be2 !important; 
-    box-shadow: 0 0 20px rgba(138, 43, 226, var(--fx-opacity, 0.4)), inset 0 0 10px rgba(138, 43, 226, var(--fx-opacity, 0.3)); 
+    box-shadow: 0 0 20px rgba(138, 43, 226, var(--fx-opacity, 0.6)), inset 0 0 10px rgba(138, 43, 226, var(--fx-opacity, 0.4)); 
   }
   .sound-button.is-fav { border: 1px solid #ffb400; }
   .sound-button.active.is-fav { border: 1px solid #8a2be2 !important; }
@@ -189,12 +189,7 @@
 
   canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; }
   #stars { z-index: 1; transition: opacity 2s; }
-  #weatherCanvas { 
-    z-index: 3; 
-    /* Увеличен contrast до 25 для максимальной четкости краев капель */
-    filter: blur(2px) contrast(25);
-    -webkit-filter: blur(2px) contrast(25);
-  }
+  #weatherCanvas { z-index: 3; }
   #steamCanvas { z-index: 4; }
   
   .modal { 
@@ -343,9 +338,11 @@
       <label id="lblFxStyle">Effect Style</label>
       <select id="fxStyleSelect" class="settings-select">
         <option value="steam">💨 Steam (Color)</option>
+        <option value="rain">💧 Rain Drops</option>
         <option value="snow">❄️ Snowflakes</option>
         <option value="comets">☄️ Comets & Asteroids</option>
         <option value="neondust">✨ Neon Dust</option>
+        <option value="aura">🌀 Pulsing Aura</option>
         <option value="random">🔀 Random Effect</option>
       </select>
     </div>
@@ -361,8 +358,8 @@
     <div class="settings-group">
       <label id="lblFxOpacity">Opacity / Glow</label>
       <div class="range-container">
-        <input type="range" id="fxOpacityRange" class="settings-range" min="0.1" max="1" step="0.05" value="0.4">
-        <span class="range-value" id="valFxOpacity">40%</span>
+        <input type="range" id="fxOpacityRange" class="settings-range" min="0.1" max="1" step="0.05" value="0.7">
+        <span class="range-value" id="valFxOpacity">70%</span>
       </div>
     </div>
 
@@ -396,7 +393,6 @@
         <span class="icon">🎲</span> <span id="btnWRandom">Random</span>
       </button>
       
-      <!-- Кнопка ОК для закрытия окна -->
       <button class="weather-option-btn" onclick="closeWeatherModal()" style="margin-top: 10px; background-color: #ffb400; color: #000; font-weight: bold; justify-content: center;">
         <span>OK</span>
       </button>
@@ -519,9 +515,6 @@ const viewsRef = database.ref('page_views');
 let presenceRef = null;
 let liveInterval = null;
 
-const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
 function logButtonClick(buttonId) {
   try {
     if (typeof firebase !== 'undefined' && firebase.database) {
@@ -590,7 +583,7 @@ const uiTL = {
     lblTimeOfDay: "Time of Day", lblWeather: "Weather",
     todNames: { morning: "🌅 Morning", noon: "☀️ Noon", evening: "🌆 Evening", night: "🌙 Night", full_cycle: "🔄 Full 24h Cycle (120s)" },
     weatherNames: { clear: "☀️ Clear", cloudy: "☁️ Clouds + Rain", autumn_shower: "🍁 Autumn Shower NEW", random: "🔀 Random Weather (120s)" },
-    fxNames: { steam: "💨 Steam (Color)", snow: "❄️ Snowflakes", comets: "☄️ Comets & Asteroids", neondust: "✨ Neon Dust", random: "🔀 Random Effect" },
+    fxNames: { steam: "💨 Steam (Color)", rain: "💧 Rain Drops", snow: "❄️ Snowflakes", comets: "☄️ Comets & Asteroids", neondust: "✨ Neon Dust", aura: "🌀 Pulsing Aura", random: "🔀 Random Effect" },
     fxPromoTitle: "New Feature: Effects",
     fxPromoDesc: "Click Yes to activate automatic switching of visual effects.",
     fxPromoEnable: "Yes, activate all effects",
@@ -620,7 +613,7 @@ const uiTL = {
     lblTimeOfDay: "Hora do Dia", lblWeather: "Clima",
     todNames: { morning: "🌅 Manhã", noon: "☀️ Meio-dia", evening: "🌆 Tarde / Noite", night: "🌙 Noite", full_cycle: "🔄 Ciclo de 24h (120s)" },
     weatherNames: { clear: "☀️ Limpo", cloudy: "☁️ Nuvens + Chuva", autumn_shower: "🍁 Chuva de Outono Nova", random: "🔀 Clima Aleatório (120s)" },
-    fxNames: { steam: "💨 Vapor (Colorido)", snow: "❄️ Flocos de Neve", comets: "☄️ Cometas e Asteroides", neondust: "✨ Poeira Neon", random: "🔀 Efeito Aleatório" },
+    fxNames: { steam: "💨 Vapor (Colorido)", rain: "💧 Gotas de Chuva", snow: "❄️ Flocos de Neve", comets: "☄️ Cometas e Asteroides", neondust: "✨ Poeira Neon", aura: "🌀 Aura Pulsante", random: "🔀 Efeito Aleatório" },
     fxPromoTitle: "Nova Função: Efeitos",
     fxPromoDesc: "Clique em Sim para ativar a troca automática de efeitos visuais.",
     fxPromoEnable: "Sim, ativar todos os efeitos",
@@ -650,7 +643,7 @@ const uiTL = {
     lblTimeOfDay: "Час доби", lblWeather: "Погода",
     todNames: { morning: "🌅 Ранок", noon: "☀️ Полдень", evening: "🌆 Вечір", night: "🌙 Ніч", full_cycle: "🔄 Повні добу (120с)" },
     weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Хмари + Дощ", autumn_shower: "🍁 Осіння злива НОВА", random: "🔀 Рандомна погода (120с)" },
-    fxNames: { steam: "💨 Кольорова пара", snow: "❄️ Сніжинки", comets: "☄️ Комети та астероїди", neondust: "✨ Магічні іскри", random: "🔀 Рандомний ефект" },
+    fxNames: { steam: "💨 Кольорова пара", rain: "💧 Краплі дощу", snow: "❄️ Сніжинки", comets: "☄️ Комети та астероїди", neondust: "✨ Магічні іскри", aura: "🌀 Пульсуюча аура", random: "🔀 Рандомний ефект" },
     fxPromoTitle: "Нова функція ефекти.",
     fxPromoDesc: "натисніть так щоб активувати автоматичну зміну ефектів",
     fxPromoEnable: "так, активувати всі ефекти",
@@ -680,7 +673,7 @@ const uiTL = {
     lblTimeOfDay: "Время суток", lblWeather: "Погода",
     todNames: { morning: "🌅 Утро", noon: "☀️ Полдень", evening: "🌆 Вечер", night: "🌙 Ночь", full_cycle: "🔄 Полные сутки (120 сек)" },
     weatherNames: { clear: "☀️ Ясно", cloudy: "☁️ Тучи + Дождь", autumn_shower: "🍁 Осенний ливень НОВЫЙ", random: "🔀 Рандомная погода (120 сек)" },
-    fxNames: { steam: "💨 Цветной пар", snow: "❄️ Снежинки", comets: "☄️ Кометы и астероиды", neondust: "✨ Магические искри", random: "🔀 Рандом" },
+    fxNames: { steam: "💨 Цветной пар", rain: "💧 Капли дождя", snow: "❄️ Снежинки", comets: "☄️ Кометы и астероиды", neondust: "✨ Магические искри", aura: "🌀 Пульсирующая аура", random: "🔀 Рандом" },
     fxPromoTitle: "Новая функция эффекты.",
     fxPromoDesc: "нажмите да что-бы активировать автоматическую смену эффектов",
     fxPromoEnable: "да, активировать все эффекты",
@@ -688,7 +681,7 @@ const uiTL = {
     fxPromoPs: "PS: Вы сможете изменить это в разделе Настройки.",
     weatherChoiceTitle: "Выберите погоду",
     wClear: "Чистое небо", wClouds: "Тучи и Дождь", wAutumn: " Осенний ливень НОВЫЙ", wRandom: "Рандом",
-    soundSoon: "Этот звук скоро будет доступний!"
+    soundSoon: "Этот звук скоро будет доступен!"
   }
 };
 
@@ -701,14 +694,9 @@ let weatherParticles = [];
 let autumnParticles = []; 
 let accumulatedWater = [];
 let accumulatedLeaves = [];
-// Динамика дождя
-let rainIntensityMultiplier = 1.0;
-let rainWaveTimer = 0;
-const rainWaveSpeed = 0.00004;      
-const rainMinMultiplier = 2.9;   
-const rainMaxMultiplier = 8.4;   
+let buttonRipples = []; // Массив для капель, стекающих с кнопок
 
-const MAX_ACCUMULATED_ITEMS = 4500;
+const MAX_ACCUMULATED_ITEMS = 2000;
 let pendingUnlockElement = null;
 let adTimerInterval = null;
 let steamHue = 270;
@@ -768,7 +756,7 @@ function selectWeatherMode(mode) {
 let fxConfig = {
   style: 'steam',
   activeStyle: 'steam', 
-  opacity: 0.4,
+  opacity: 0.7,
   speed: 0.5,
   randomInterval: 14 
 };
@@ -783,7 +771,7 @@ let cycleAnimationReq = null;
 let cycleStartTime = null;
 
 let randomFxTimer = null;
-const availableEffects = ['steam', 'snow', 'comets', 'neondust'];
+const availableEffects = ['steam', 'rain', 'snow', 'comets', 'neondust', 'aura'];
 
 function pickRandomEffect() {
   const otherFx = availableEffects.filter(e => e !== fxConfig.activeStyle);
@@ -1350,6 +1338,7 @@ document.getElementById('sleepBtn').onclick = () => {
       steamParticles = [];
       weatherParticles = [];
       autumnParticles = [];
+      buttonRipples = [];
     } else {
       firebase.database().goOnline();
       updateConnections();
@@ -1475,7 +1464,7 @@ function spawnCloudRain() {
   if (targetState !== 'cloudy' && targetState !== 'autumn_shower') return;
 
   const isAutumn = (targetState === 'autumn_shower');
-  const spawnRate = isAutumn ? 1.2 : 1.0; 
+  const spawnRate = isAutumn ? 0.9 : 0.8; 
 
   if (Math.random() < spawnRate) {
     const cloudsArr = [
@@ -1497,41 +1486,39 @@ function spawnCloudRain() {
         let startY = rect.bottom - 10;
 
         if (isAutumn) {
-            if (Math.random() < 0.75) {
-              weatherParticles.push({
-                x: startX,
-                y: startY,
-                vy: 14,
-                vx: 0,
-                length: 8, /* Уменьшена длина падающей капли */
-                alpha: 0.85,
-                missChance: 1.0
-              });
-            } else {
-              const autumnColors = ['#d35400', '#e67e22', '#c0392b', '#f39c12'];
-              autumnParticles.push({
-                x: startX,
-                y: startY,
-                vy: 1.2,
-                vx: (Math.random() - 0.1) * 0.1,
-                angle: Math.random() * Math.PI * 2,
-                vAngle: (Math.random() - 0.5) * 0.02,
-                size: Math.random() * 8 + 6,
-                color: autumnColors[Math.floor(Math.random() * autumnColors.length)],
-                alpha: Math.random() * 0.4 + 0.6
-              });
-            }
-          } else {
+          if (Math.random() < 0.75) {
             weatherParticles.push({
               x: startX,
               y: startY,
-              vy: 14,
-              vx: 0,
-              length: 8, /* Уменьшена длина падающей капли */
-              alpha: 0.85,
-              missChance: 1.0
+              vy: (Math.random() * 10 + 14) * 1.5,
+              vx: (Math.random() - 0.5) * 1.0,
+              length: Math.random() * 15 + 10,
+              alpha: Math.random() * 0.4 + 0.3
+            });
+          } else {
+            const autumnColors = ['#d35400', '#e67e22', '#c0392b', '#f39c12'];
+            autumnParticles.push({
+              x: startX,
+              y: startY,
+              vy: (Math.random() * 0.8 + 0.6) * 1.5,
+              vx: (Math.random() - 0.1) * 0.1,
+              angle: Math.random() * Math.PI * 2,
+              vAngle: (Math.random() - 0.5) * 0.02,
+              size: Math.random() * 8 + 6,
+              color: autumnColors[Math.floor(Math.random() * autumnColors.length)],
+              alpha: Math.random() * 0.4 + 0.6
             });
           }
+        } else {
+          weatherParticles.push({
+            x: startX,
+            y: startY,
+            vy: (Math.random() * 6 + 10) * 1.5,
+            vx: (Math.random() - 0.5) * 1.5,
+            length: Math.random() * 12 + 8,
+            alpha: Math.random() * 0.4 + 0.3
+          });
+        }
       }
     }
   }
@@ -1559,6 +1546,18 @@ function spawnSteam() {
             alpha: (Math.random() * 0.3 + 0.2) * fxConfig.opacity,
             growth: (Math.random() * 0.1 + 0.05) * fxConfig.speed,
             hue: steamHue 
+          });
+        }
+      }
+      else if (activeFx === 'rain') {
+        if (Math.random() < 0.3) {
+          steamParticles.push({
+            type: 'rain',
+            x: rect.left + Math.random() * rect.width,
+            y: rect.bottom - 5,
+            vy: (Math.random() * 3 + 2) * fxConfig.speed,
+            length: Math.random() * 10 + 8,
+            alpha: (Math.random() * 0.4 + 0.3) * fxConfig.opacity
           });
         }
       }
@@ -1636,6 +1635,20 @@ function spawnSteam() {
           });
         }
       }
+      else if (activeFx === 'aura') {
+        if (Math.random() < 0.04) {
+          steamParticles.push({
+            type: 'aura',
+            cx: rect.left + rect.width / 2,
+            cy: rect.top + rect.height / 2,
+            radius: rect.width / 2,
+            maxRadius: rect.width * 0.9,
+            alpha: 0.6 * fxConfig.opacity,
+            growth: (Math.random() * 0.4 + 0.2) * fxConfig.speed,
+            color: el.color
+          });
+        }
+      }
     }
   });
 }
@@ -1654,69 +1667,108 @@ function draw() {
   if (!sleepMode) {
     spawnCloudRain();
     
-    const soundGridEl = document.getElementById('soundGrid');
+    // --- 1. Обработка капель дождя (с логикой стекания с кнопок из файла-примера) ---
+    const targetWeatherState = (envConfig.weather === 'random') ? activeWeatherState : envConfig.weather;
+    if (targetWeatherState === 'cloudy' || targetWeatherState === 'autumn_shower') {
+      // Собираем координаты всех звуковых кнопок для проверки пересечения с каплями
+      const buttons = document.querySelectorAll('.sound-button');
+      const buttonRects = Array.from(buttons).map(b => b.getBoundingClientRect());
 
-    for (let i = weatherParticles.length - 1; i >= 0; i--) {
-      let p = weatherParticles[i];
-      p.x += p.vx;
-      p.y += p.vy;
+      for (let i = weatherParticles.length - 1; i >= 0; i--) {
+        let p = weatherParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
 
-      let hitTile = false;
-      const soundButtons = soundGridEl.querySelectorAll('.sound-button');
-      
-      for (let btn of soundButtons) {
-        const bRect = btn.getBoundingClientRect();
-        if (p.x >= bRect.left && p.x <= bRect.right && p.y >= bRect.top && p.y <= bRect.bottom) {
-          hitTile = true;
+        // Проверка: если капля попадает на верхнюю или боковые грани какой-либо кнопки
+        let hitButton = false;
+        for (let rect of buttonRects) {
+          // Если капля находится в диапазоне ширины кнопки и пересекает её верхнюю границу
+          if (p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.top + 6) {
+            hitButton = true;
+            // Капля превращается в стекающую по кнопке или падает с её края дальше
+            if (Math.random() < 0.5) {
+              // Стекает по поверхности кнопки (создаем микро-каплю на кнопке)
+              buttonRipples.push({
+                x: p.x,
+                y: rect.top + Math.random() * (rect.height * 0.5),
+                radius: Math.random() * 2 + 1,
+                alpha: 0.8
+              });
+            } else {
+              // Стекает до нижнего края кнопки и падает дальше вниз
+              buttonRipples.push({
+                x: p.x,
+                y: rect.bottom,
+                radius: Math.random() * 2.5 + 1.5,
+                alpha: 0.9,
+                fallAfter: true,
+                vy: Math.random() * 4 + 4
+              });
+            }
+            break;
+          }
+        }
+
+        if (hitButton) {
+          weatherParticles.splice(i, 1);
+          continue;
+        }
+
+        // Если капля долетела до низа экрана
+        if (p.y > innerHeight - 90) {
           if (accumulatedWater.length < MAX_ACCUMULATED_ITEMS) {
             accumulatedWater.push({
               x: p.x,
-              y: p.y,
-              vx: (Math.random() - 0.5) * 0.5,
-              vy: Math.random() * 1.5 + 0.5,
-              radius: Math.random() * 1.5 + 1.0, /* Уменьшенный радиус скопившихся капель */
-              alpha: 0.95,
-              onButton: true,
-              buttonBottom: bRect.bottom,
-              waiting: false,
-              fallDelayTime: 0
+              y: innerHeight - (Math.random() * 70 + 20),
+              radius: Math.random() * 3 + 2,
+              alpha: 0.7
             });
           }
-          break;
+          weatherParticles.splice(i, 1);
+          continue;
         }
-      }
 
-      if (hitTile) {
-        weatherParticles.splice(i, 1);
-        continue;
+        wCtx.beginPath();
+        wCtx.strokeStyle = `rgba(180, 210, 255, ${p.alpha})`;
+        wCtx.lineWidth = 1.2;
+        wCtx.moveTo(p.x, p.y);
+        wCtx.lineTo(p.x + p.vx * 2, p.y + p.length);
+        wCtx.stroke();
       }
+    }
 
-      if (p.y > innerHeight - 90) {
-        if (accumulatedWater.length < MAX_ACCUMULATED_ITEMS) {
-          accumulatedWater.push({
-            x: p.x,
-            y: innerHeight - (Math.random() * 70 + 20),
-            vx: 0,
-            vy: 0,
-            radius: Math.random() * 1.5 + 1.0, /* Уменьшенный радиус */
-            alpha: 0.85,
-            onButton: false,
-            waiting: false
-          });
+    // --- 1.5. Обработка капель, стекающих с кнопок ---
+    for (let i = buttonRipples.length - 1; i >= 0; i--) {
+      let r = buttonRipples[i];
+      if (r.fallAfter) {
+        r.y += r.vy;
+        if (r.y > innerHeight - 90) {
+          if (accumulatedWater.length < MAX_ACCUMULATED_ITEMS) {
+            accumulatedWater.push({
+              x: r.x,
+              y: innerHeight - (Math.random() * 70 + 20),
+              radius: Math.random() * 3 + 2,
+              alpha: 0.7
+            });
+          }
+          buttonRipples.splice(i, 1);
+          continue;
         }
-        weatherParticles.splice(i, 1);
-        continue;
+      } else {
+        r.alpha -= 0.02;
+        if (r.alpha <= 0) {
+          buttonRipples.splice(i, 1);
+          continue;
+        }
       }
 
       wCtx.beginPath();
-      wCtx.strokeStyle = `rgba(210, 235, 255, ${p.alpha})`;
-      wCtx.lineWidth = 1.5; /* Сделано тоньше для большей четкости */
-      wCtx.moveTo(p.x, p.y);
-      wCtx.lineTo(p.x + p.vx * 2, p.y + p.length);
-      wCtx.stroke();
+      wCtx.fillStyle = `rgba(180, 210, 255, ${r.alpha})`;
+      wCtx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      wCtx.fill();
     }
 
-    // --- Отрисовка листьев ---
+    // --- 2. Обработка падающих листьев ---
     for (let i = autumnParticles.length - 1; i >= 0; i--) {
       let leaf = autumnParticles[i];
       leaf.x += leaf.vx + Math.sin(leaf.y * 0.01) * 0.3;
@@ -1742,39 +1794,17 @@ function draw() {
       wCtx.translate(leaf.x, leaf.y);
       wCtx.rotate(leaf.angle);
       wCtx.beginPath();
-      wCtx.ellipse(0, 0, leaf.size, leaf.size * 0.4, 0, 0, Math.PI * 2);
+      wCtx.ellipse(0, 0, leaf.size, leaf.size * 0.5, 0, 0, Math.PI * 2);
       wCtx.fillStyle = leaf.color;
       wCtx.globalAlpha = leaf.alpha;
       wCtx.fill();
       wCtx.restore();
     }
 
-    // --- Обработка и стекание скопившейся воды ---
+    // --- 3. Отрисовка и плавное исчезновение скопившейся воды ---
     for (let i = accumulatedWater.length - 1; i >= 0; i--) {
       let w = accumulatedWater[i];
-      
-      if (w.onButton) {
-        w.y += 0.35; 
-        w.x += (Math.random() - 0.5) * 0.15;
-
-        if (w.y >= w.buttonBottom - 5) {
-          w.onButton = false;
-          w.vy = Math.random() * 1.2 + 0.5; 
-          w.vx = (Math.random() - 0.5) * 0.2;
-        }
-      } else {
-        w.vy += 0.03; 
-        if (w.vy > 2.2) w.vy = 2.2; 
-        
-        w.y += w.vy;
-        w.x += w.vx;
-
-        if (w.y > innerHeight - 50) {
-          w.vy = 0; 
-        }
-      }
-
-      w.alpha -= 0.0004; 
+      w.alpha -= 0.000095; 
 
       if (w.alpha <= 0) {
         accumulatedWater.splice(i, 1);
@@ -1782,20 +1812,15 @@ function draw() {
       }
 
       wCtx.beginPath();
-      
-      if (isIOSDevice) {
-        wCtx.fillStyle = `rgba(140, 180, 220, ${w.alpha * 0.7})`;
-        wCtx.arc(w.x, w.y, (w.radius * 0.5) * 0.4, 0, Math.PI * 2); /* Еще меньше и четче на iOS */
-      } else {
-        wCtx.fillStyle = `rgba(215, 240, 255, ${w.alpha})`;
-        wCtx.arc(w.x, w.y, w.radius * 0.4, 0, Math.PI * 2); /* Уменьшено в ~2.5 раза для миниатюрности */
-      }
+      wCtx.fillStyle = `rgba(180, 210, 255, ${w.alpha})`;
+      wCtx.arc(w.x, w.y, w.radius, 0, Math.PI * 2);
       wCtx.fill();
     }
 
+    // --- 4. Отрисовка и плавное исчезновение накопившихся листьев ---
     for (let i = accumulatedLeaves.length - 1; i >= 0; i--) {
       let l = accumulatedLeaves[i];
-      l.alpha -= 0.000066; 
+      l.alpha -= 0.000095; 
 
       if (l.alpha <= 0) {
         accumulatedLeaves.splice(i, 1);
@@ -1833,6 +1858,18 @@ function draw() {
         sCtx.fillStyle = gradient;
         sCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         sCtx.fill();
+      }
+      else if (p.type === 'rain') {
+        p.y += p.vy;
+        p.alpha -= 0.005 * fxConfig.speed;
+        if (p.alpha <= 0 || p.y > innerHeight) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.strokeStyle = `rgba(180, 210, 255, ${p.alpha})`;
+        sCtx.lineWidth = 1.5;
+        sCtx.moveTo(p.x, p.y);
+        sCtx.lineTo(p.x, p.y + p.length);
+        sCtx.stroke();
       }
       else if (p.type === 'snow') {
         p.x += p.vx + Math.sin(p.y * 0.05) * 0.3;
@@ -1914,11 +1951,25 @@ function draw() {
         sCtx.fill();
         sCtx.shadowBlur = 0;
       }
+      else if (p.type === 'aura') {
+        p.radius += p.growth;
+        p.alpha -= 0.008 * fxConfig.speed;
+        if (p.alpha <= 0 || p.radius >= p.maxRadius) { steamParticles.splice(i, 1); continue; }
+
+        sCtx.beginPath();
+        sCtx.strokeStyle = p.color;
+        sCtx.globalAlpha = p.alpha;
+        sCtx.lineWidth = 2;
+        sCtx.arc(p.cx, p.cy, p.radius, 0, Math.PI * 2);
+        sCtx.stroke();
+        sCtx.globalAlpha = 1;
+      }
     }
   }
 
   requestAnimationFrame(draw);
 }
+
 draw();
 
 document.getElementById('welcomeModal').style.display = 'flex';
@@ -1960,7 +2011,10 @@ wakeUpOverlay.appendChild(continueBtn);
 document.body.appendChild(wakeUpOverlay);
 
 function showWakeUpScreen() {
-    if (isIOSDevice) {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (isIOS) {
         wakeUpOverlay.style.display = 'flex';
         setTimeout(() => { wakeUpOverlay.style.opacity = '1'; }, 10);
     }
@@ -1999,6 +2053,17 @@ window.addEventListener('pageshow', (event) => {
 const linksTrigger = document.getElementById('linksTrigger');
 const linksOptions = document.getElementById('linksOptions');
 const speedDropdown = document.getElementById('speedDropdown');
+
+linksTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  logButtonClick('ui_social_links_menu');
+  if (speedDropdown) speedDropdown.classList.remove('open');
+  linksOptions.classList.toggle('open');
+});
+
+window.addEventListener('click', () => {
+  linksOptions.classList.remove('open');
+});
 </script>
 </body>
 </html>
